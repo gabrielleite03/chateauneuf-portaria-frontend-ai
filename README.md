@@ -173,7 +173,10 @@ docker compose --env-file .env.docker push
 
 ## Instalacao na estacao de trabalho
 
-1. Instale o Docker Desktop na estacao.
+1. Execute o instalador em uma estacao Windows.
+
+   O script verifica se o Docker esta instalado. Se nao estiver, tenta instalar o Docker Desktop usando `winget`.
+   Se o Docker Desktop estiver instalado mas parado, o script tenta iniciar e aguarda o engine ficar pronto.
 
 2. Copie para a estacao estes arquivos:
 
@@ -213,6 +216,14 @@ docker compose --env-file .env.docker push
    ```
 
    O script cria a pasta, copia `docker-compose.yml`, `.env.docker.example` e `chateauneuf-docker-setup.zip`, extrai o ZIP, configura `.env.docker`, prepara a credencial e sobe os containers.
+
+   Para nao tentar instalar/iniciar Docker automaticamente:
+
+   ```powershell
+   .\install-workstation.ps1 `
+     -GoogleSheetId "ID_DA_SUA_PLANILHA" `
+     -SkipDockerInstall
+   ```
 
 4. Acesse a aplicacao:
 

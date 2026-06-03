@@ -11,13 +11,92 @@ param(
   [string]$BackendPort = "18080",
   [string]$GoogleSheetName = "Entradas",
   [string]$SyncIntervalSeconds = "30",
-  [switch]$NoStart
+  [switch]$NoStart,
+  [switch]$SkipDockerInstall
 )
 
 $ErrorActionPreference = "Stop"
 
 if ([string]::IsNullOrWhiteSpace($SourceDir)) {
   $SourceDir = $PSScriptRoot
+}
+
+function Add-DockerToSessionPath {
+  $dockerBin = "C:\Program Files\Docker\Docker\resources\bin"
+  if ((Test-Path -LiteralPath (Join-Path $dockerBin "docker.exe")) -and ($env:Path -notlike "*$dockerBin*")) {
+    $env:Path = "$dockerBin;$env:Path"
+  }
+}
+
+function Test-DockerCli {
+  Add-DockerToSessionPath
+  return $null -ne (Get-Command docker -ErrorAction SilentlyContinue)
+}
+
+function Install-DockerDesktop {
+  if ($SkipDockerInstall) {
+    throw "Docker nao encontrado. Instale o Docker Desktop manualmente ou execute sem -SkipDockerInstall."
+  }
+
+  $winget = Get-Command winget -ErrorAction SilentlyContinue
+  if ($null -eq $winget) {
+    throw "Docker nao encontrado e winget nao esta disponivel. Instale o Docker Desktop manualmente."
+  }
+
+  Write-Host "Docker nao encontrado. Instalando Docker Desktop via winget..."
+  & winget install --id Docker.DockerDesktop --exact --source winget --accept-package-agreements --accept-source-agreements
+  if ($LASTEXITCODE -ne 0) {
+    throw "Falha ao instalar Docker Desktop via winget. Codigo de saida: $LASTEXITCODE"
+  }
+
+  Add-DockerToSessionPath
+  if (-not (Test-DockerCli)) {
+    throw "Docker Desktop foi instalado, mas o comando docker ainda nao esta disponivel nesta sessao. Reabra o terminal e execute novamente."
+  }
+}
+
+function Start-DockerDesktop {
+  $dockerDesktopPaths = @(
+    "C:\Program Files\Docker\Docker\Docker Desktop.exe",
+    "$env:LOCALAPPDATA\Docker\Docker Desktop.exe"
+  )
+
+  foreach ($dockerDesktopPath in $dockerDesktopPaths) {
+    if (Test-Path -LiteralPath $dockerDesktopPath -PathType Leaf) {
+      Write-Host "Iniciando Docker Desktop..."
+      Start-Process -FilePath $dockerDesktopPath -WindowStyle Hidden
+      return
+    }
+  }
+}
+
+function Test-DockerEngine {
+  & docker info *> $null
+  return $LASTEXITCODE -eq 0
+}
+
+function Ensure-DockerReady {
+  if (-not (Test-DockerCli)) {
+    Install-DockerDesktop
+  }
+
+  if (Test-DockerEngine) {
+    return
+  }
+
+  Start-DockerDesktop
+
+  Write-Host "Aguardando Docker Desktop iniciar..."
+  $deadline = (Get-Date).AddMinutes(3)
+  do {
+    Start-Sleep -Seconds 5
+    if (Test-DockerEngine) {
+      Write-Host "Docker Desktop pronto."
+      return
+    }
+  } while ((Get-Date) -lt $deadline)
+
+  throw "Docker Desktop foi encontrado, mas o engine nao iniciou. Abra o Docker Desktop, aguarde ficar pronto e execute novamente."
 }
 
 function Copy-DistributionFile {
@@ -50,6 +129,10 @@ if ([string]::IsNullOrWhiteSpace($packageName)) {
 }
 
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+
+if (-not $NoStart) {
+  Ensure-DockerReady
+}
 
 Copy-DistributionFile -FileName "docker-compose.yml"
 Copy-DistributionFile -FileName ".env.docker.example"
