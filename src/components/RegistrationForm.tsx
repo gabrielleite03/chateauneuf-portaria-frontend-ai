@@ -17,7 +17,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
     name: '',
     document: '',
     company: '',
-    visitorType: 'Prestador de Serviço' as 'Visitante' | 'Prestador de Serviço' | 'Fornecedor' | 'Outro',
+    visitorType: 'Visitante' as 'Visitante' | 'Prestador de Serviço' | 'Fornecedor' | 'Outro',
     unit: '',
     licensePlate: '',
     notes: ''
@@ -189,7 +189,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
           name: '',
           document: '',
           company: '',
-          visitorType: 'Prestador de Serviço',
+          visitorType: 'Visitante',
           unit: '',
           licensePlate: '',
           notes: ''
@@ -222,7 +222,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0"></div>
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-400">Nova Entrada de Prestador</h2>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-400">Nova Entrada</h2>
             <p className="text-[9px] text-slate-500 font-mono uppercase mt-0.5">Cadastro corrente na Unidade Local</p>
           </div>
         </div>
@@ -263,7 +263,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
             {/* Input Name */}
             <div>
               <label htmlFor="input-name" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
-                Nome do Prestador de Serviço <span className="text-emerald-500">*</span>
+                Nome do visitante <span className="text-emerald-500">*</span>
               </label>
               <input
                 type="text"

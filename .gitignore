@@ -4,5 +4,12 @@ dist/
 coverage/
 .DS_Store
 *.log
+*.err
 .env*
 !.env.example
+!.env.docker.example
+secrets/*.json
+docker-data/
+docker-setup-package/
+*.zip
+project.md

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   Calendar, 
   User, 
   CreditCard, 
@@ -27,6 +27,7 @@ import {
   Activity
 } from 'lucide-react';
 import { ScheduledService } from '../types';
+import { createVisit } from '../api';
 
 interface ScheduledServicesModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
@@ -239,18 +240,14 @@ export default function ScheduledServicesModule({ showToast, isInternetOnline }:
 
           // PRO-FEATURE: Automatically log this entrance to the Main Active Visistors Log too!
           try {
-            await fetch('/api/entry', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: updated.name,
-                document: updated.document,
-                company: updated.company,
-                visitorType: 'Prestador de Serviço',
-                unit: updated.unit.startsWith('Apto') ? updated.unit : `Apto ${updated.unit}`,
-                notes: `Origem: Prestador Agendado. Obs: ${updated.notes || 'Nenhuma'} (Autorizado por: ${updated.authorizedBy})`,
-                photo: finalPhoto || undefined
-              })
+            await createVisit({
+              name: updated.name,
+              document: updated.document,
+              company: updated.company,
+              visitorType: 'Prestador de Serviço',
+              unit: updated.unit.startsWith('Apto') ? updated.unit : `Apto ${updated.unit}`,
+              notes: `Origem: Prestador Agendado. Obs: ${updated.notes || 'Nenhuma'} (Autorizado por: ${updated.authorizedBy})`,
+              photo: finalPhoto || undefined
             });
             showToast("Entrada integrada automaticamente no Painel de Controle Principal!", "success");
           } catch (err) {
