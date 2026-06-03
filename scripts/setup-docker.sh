@@ -6,7 +6,7 @@ GOOGLE_SHEET_ID=""
 FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:latest"
 BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:latest"
 FRONTEND_PORT="8081"
-BACKEND_PORT="8080"
+BACKEND_PORT="18080"
 GOOGLE_SHEET_NAME="Entradas"
 SYNC_INTERVAL_SECONDS="30"
 BUILD="false"
@@ -110,7 +110,11 @@ TARGET_CREDENTIALS="$SECRETS_DIR/google-service-account.json"
 ENV_FILE="$PROJECT_ROOT/.env.docker"
 
 mkdir -p "$SECRETS_DIR"
-cp "$GOOGLE_CREDENTIALS_FILE" "$TARGET_CREDENTIALS"
+SOURCE_CREDENTIALS=$(readlink -f "$GOOGLE_CREDENTIALS_FILE" 2>/dev/null || echo "$GOOGLE_CREDENTIALS_FILE")
+TARGET_CREDENTIALS_RESOLVED=$(readlink -f "$TARGET_CREDENTIALS" 2>/dev/null || echo "$TARGET_CREDENTIALS")
+if [ "$SOURCE_CREDENTIALS" != "$TARGET_CREDENTIALS_RESOLVED" ]; then
+  cp "$GOOGLE_CREDENTIALS_FILE" "$TARGET_CREDENTIALS"
+fi
 chmod 600 "$TARGET_CREDENTIALS" 2>/dev/null || true
 
 cat > "$ENV_FILE" <<EOF

@@ -186,6 +186,7 @@ docker compose --env-file .env.docker push
    chateauneuf-docker-setup.zip
    install-workstation.ps1
    install-workstation.cmd
+   install-workstation.sh
    ```
 
 3. Execute o instalador unico a partir da pasta onde os arquivos foram copiados:
@@ -325,6 +326,53 @@ docker compose --env-file .env.docker push
 Importante: compartilhe a planilha Google com o e-mail do service account que esta dentro do `google-service-account.json`. Sem isso, a aplicacao roda, mas nao sincroniza com o Sheets.
 
 ### Instalacao no Linux Mint
+
+1. Copie para a estacao Linux estes arquivos:
+
+   ```text
+   docker-compose.yml
+   .env.docker.example
+   chateauneuf-docker-setup.zip
+   install-workstation.sh
+   ```
+
+2. Execute o instalador unico:
+
+   ```sh
+   chmod +x ./install-workstation.sh
+
+   ./install-workstation.sh \
+     --google-sheet-id "ID_DA_SUA_PLANILHA"
+   ```
+
+   Por padrao, ele usa:
+
+   ```text
+   ~/ChateauneufPortaria
+   gabrielleite03/chateauneuf-portaria-frontend:latest
+   gabrielleite03/chateauneuf-portaria-backend:latest
+   http://localhost:8081
+   backend exposto em http://localhost:18080
+   ```
+
+   O script verifica se Docker existe. Se nao existir em Linux Mint/Ubuntu, tenta instalar Docker Engine via `apt`.
+   Se Docker estiver instalado mas parado, tenta iniciar o servico e aguardar ficar pronto.
+
+   Para nao tentar instalar/iniciar Docker automaticamente:
+
+   ```sh
+   ./install-workstation.sh \
+     --google-sheet-id "ID_DA_SUA_PLANILHA" \
+     --skip-docker-install
+   ```
+
+3. Acesse:
+
+   ```text
+   http://localhost:8081
+   ```
+
+### Instalacao manual no Linux Mint
 
 1. Instale Docker e Docker Compose:
 
