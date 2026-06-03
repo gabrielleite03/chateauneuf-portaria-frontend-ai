@@ -71,7 +71,7 @@ function Start-DockerDesktop {
 }
 
 function Test-DockerEngine {
-  & docker info *> $null
+  & cmd.exe /c "docker info >NUL 2>NUL"
   return $LASTEXITCODE -eq 0
 }
 
