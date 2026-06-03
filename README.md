@@ -187,6 +187,7 @@ docker compose --env-file .env.docker push
    install-workstation.ps1
    install-workstation.cmd
    install-workstation.sh
+   instalar-chateauneuf.sh
    ```
 
 3. Execute o instalador unico a partir da pasta onde os arquivos foram copiados:
@@ -343,6 +344,13 @@ Importante: compartilhe a planilha Google com o e-mail do service account que es
 
    ./install-workstation.sh \
      --google-sheet-id "ID_DA_SUA_PLANILHA"
+   ```
+
+   Alternativamente, edite `instalar-chateauneuf.sh`, troque `ID_DA_SUA_PLANILHA` pelo ID real e execute:
+
+   ```sh
+   chmod +x ./instalar-chateauneuf.sh
+   ./instalar-chateauneuf.sh
    ```
 
    Por padrao, ele usa:
