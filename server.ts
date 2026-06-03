@@ -67,11 +67,25 @@ interface ScheduledService {
   syncStatus: 'synced' | 'pending' | 'failed';
 }
 
+interface KeyRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  local: string; // Local
+  residentName: string; // Morador
+  unit: string; // Apto
+  pickupTime: string; // Hora entrega
+  returnTime?: string; // Hora devolução
+  gatekeeper: string; // Porteiro
+  status: 'retirada' | 'devolvida';
+  syncStatus: 'synced' | 'pending' | 'failed';
+}
+
 interface DBStructure {
   visits: Visit[];
   residents?: Resident[];
   diaristas?: DiaristaEntry[];
   scheduledServices?: ScheduledService[];
+  keyRecords?: KeyRecord[];
   isInternetOnline: boolean;
   lastSyncTime: string | null;
   syncHistory: Array<{
@@ -245,6 +259,31 @@ const initialDB: DBStructure = {
   residents: DEFAULT_RESIDENTS,
   diaristas: DEFAULT_DIARISTAS,
   scheduledServices: DEFAULT_SCHEDULES,
+  keyRecords: [
+    {
+      id: "k-1",
+      date: new Date().toISOString().split('T')[0],
+      local: "Salão de Festas",
+      residentName: "Ana Carolina Nogueira",
+      unit: "11",
+      pickupTime: "10:30",
+      gatekeeper: "Porteiro Alencar",
+      status: "retirada",
+      syncStatus: "synced"
+    },
+    {
+      id: "k-2",
+      date: new Date(Date.now() - 24 * 3600 * 1000).toISOString().split('T')[0],
+      local: "Academia de Ginástica",
+      residentName: "Pedro Ramos",
+      unit: "12",
+      pickupTime: "08:00",
+      returnTime: "09:30",
+      gatekeeper: "Seu Manuel",
+      status: "devolvida",
+      syncStatus: "synced"
+    }
+  ],
   isInternetOnline: true,
   lastSyncTime: new Date(Date.now() - 12 * 60 * 1000).toISOString(), // synced 12 minutes ago
   syncHistory: [
@@ -331,6 +370,36 @@ function loadDB(): DBStructure {
     // Migration: make sure scheduledServices list exists
     if (!db.scheduledServices || db.scheduledServices.length === 0) {
       db.scheduledServices = DEFAULT_SCHEDULES;
+      saveDB(db);
+    }
+
+    // Migration: make sure keyRecords list exists
+    if (!db.keyRecords) {
+      db.keyRecords = [
+        {
+          id: "k-1",
+          date: new Date().toISOString().split('T')[0],
+          local: "Salão de Festas",
+          residentName: "Ana Carolina Nogueira",
+          unit: "11",
+          pickupTime: "10:30",
+          gatekeeper: "Porteiro Alencar",
+          status: "retirada",
+          syncStatus: "synced"
+        },
+        {
+          id: "k-2",
+          date: new Date(Date.now() - 24 * 3600 * 1000).toISOString().split('T')[0],
+          local: "Academia de Ginástica",
+          residentName: "Pedro Ramos",
+          unit: "12",
+          pickupTime: "08:00",
+          returnTime: "09:30",
+          gatekeeper: "Seu Manuel",
+          status: "devolvida",
+          syncStatus: "synced"
+        }
+      ];
       saveDB(db);
     }
 
@@ -629,6 +698,133 @@ app.post('/api/scheduled-services/delete', (req, res) => {
     timestamp: new Date().toISOString(),
     status: "success",
     message: `Agendamento de ${deleted.name} removido do sistema.`
+  });
+
+  saveDB(db);
+  res.json({ success: true, deletedId: id });
+});
+
+// Key Control Endpoints (Controle de Chaves)
+app.get('/api/keys', (req, res) => {
+  const db = loadDB();
+  res.json(db.keyRecords || []);
+});
+
+app.post('/api/keys', (req, res) => {
+  const db = loadDB();
+  const { date, local, residentName, unit, pickupTime, gatekeeper } = req.body;
+
+  if (!local || !residentName || !unit || !pickupTime || !gatekeeper) {
+    return res.status(400).json({ error: "Campos obrigatórios não preenchidos." });
+  }
+
+  const newKeyRecord: KeyRecord = {
+    id: "k-" + Date.now(),
+    date: date || new Date().toISOString().split('T')[0],
+    local,
+    residentName,
+    unit,
+    pickupTime,
+    gatekeeper,
+    status: 'retirada',
+    syncStatus: db.isInternetOnline ? 'synced' : 'pending'
+  };
+
+  if (!db.keyRecords) {
+    db.keyRecords = [];
+  }
+
+  db.keyRecords.unshift(newKeyRecord);
+
+  if (db.isInternetOnline) {
+    db.lastSyncTime = new Date().toISOString();
+    db.syncHistory.unshift({
+      id: "sh-" + Date.now(),
+      timestamp: new Date().toISOString(),
+      status: "success",
+      message: `Google Sheets: Retirada de chave para ${local} pelo morador ${residentName} (Apto ${unit}) sincronizada.`
+    });
+  } else {
+    db.syncHistory.unshift({
+      id: "sh-" + Date.now(),
+      timestamp: new Date().toISOString(),
+      status: "warning",
+      message: `Sem internet: Retirada de chave para ${local} registrada no SQLite local.`
+    });
+  }
+
+  saveDB(db);
+  res.status(201).json(newKeyRecord);
+});
+
+app.post('/api/keys/return', (req, res) => {
+  const db = loadDB();
+  const { id, returnTime } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID é obrigatório para registrar a devolução." });
+  }
+
+  if (!db.keyRecords) {
+    db.keyRecords = [];
+  }
+
+  const index = db.keyRecords.findIndex(k => k.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: "Registro de controle de chave não encontrado." });
+  }
+
+  const record = db.keyRecords[index];
+  record.status = 'devolvida';
+  record.returnTime = returnTime || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  if (db.isInternetOnline) {
+    record.syncStatus = 'synced';
+    db.lastSyncTime = new Date().toISOString();
+    db.syncHistory.unshift({
+      id: "sh-" + Date.now(),
+      timestamp: new Date().toISOString(),
+      status: "success",
+      message: `Google Sheets: Chave do ${record.local} devolvida pelo morador ${record.residentName}.`
+    });
+  } else {
+    record.syncStatus = 'pending';
+    db.syncHistory.unshift({
+      id: "sh-" + Date.now(),
+      timestamp: new Date().toISOString(),
+      status: "warning",
+      message: `Sem internet: Devolução da chave do ${record.local} salva localmente.`
+    });
+  }
+
+  saveDB(db);
+  res.json(record);
+});
+
+app.post('/api/keys/delete', (req, res) => {
+  const db = loadDB();
+  const { id } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID é obrigatório." });
+  }
+
+  if (!db.keyRecords) {
+    db.keyRecords = [];
+  }
+
+  const index = db.keyRecords.findIndex(k => k.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: "Registro de controle de chave não encontrado." });
+  }
+
+  const deleted = db.keyRecords.splice(index, 1)[0];
+
+  db.syncHistory.unshift({
+    id: "sh-" + Date.now(),
+    timestamp: new Date().toISOString(),
+    status: "success",
+    message: `Aviso: Registro de chave (${deleted.local}) removido do sistema.`
   });
 
   saveDB(db);

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldCheck, UserCheck, History, Settings, RefreshCw, LayoutDashboard, WifiOff, FileText, CheckCircle2, Building2, Sparkles, Wrench } from 'lucide-react';
+import { ShieldCheck, UserCheck, History, Settings, RefreshCw, LayoutDashboard, WifiOff, FileText, CheckCircle2, Building2, Sparkles, Wrench, Key } from 'lucide-react';
 
 import { Visit, SyncStatus } from './types';
 import Header from './components/Header';
@@ -16,6 +16,7 @@ import SyncSettings from './components/SyncSettings';
 import ResidentsModule from './components/ResidentsModule';
 import DiaristasModule from './components/DiaristasModule';
 import ScheduledServicesModule from './components/ScheduledServicesModule';
+import KeyControlModule from './components/KeyControlModule';
 
 export default function App() {
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -27,7 +28,7 @@ export default function App() {
     syncHistory: []
   });
   const [isSyncing, setIsSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'control' | 'history' | 'status' | 'residents' | 'diaristas' | 'scheduled'>('control');
+  const [activeTab, setActiveTab] = useState<'control' | 'history' | 'status' | 'residents' | 'diaristas' | 'scheduled' | 'keys'>('control');
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
   // Fetch initial data from custom express backend
@@ -270,6 +271,19 @@ export default function App() {
             </button>
 
             <button
+              id="tab-keys"
+              onClick={() => setActiveTab('keys')}
+              className={`flex items-center gap-2 py-4 px-1 border-b-2 font-mono font-bold text-xs uppercase tracking-widest transition cursor-pointer ${
+                activeTab === 'keys'
+                  ? 'border-emerald-500 text-emerald-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-800/80'
+              }`}
+            >
+              <Key size={14} className="text-current" />
+              <span>Controle de Chaves</span>
+            </button>
+
+            <button
               id="tab-history"
               onClick={() => setActiveTab('history')}
               className={`flex items-center gap-2 py-4 px-1 border-b-2 font-mono font-bold text-xs uppercase tracking-widest transition cursor-pointer ${
@@ -378,6 +392,15 @@ export default function App() {
             {activeTab === 'scheduled' && (
               <div id="scheduled-tab-content">
                 <ScheduledServicesModule 
+                  showToast={showToast} 
+                  isInternetOnline={syncStatus.isInternetOnline} 
+                />
+              </div>
+            )}
+
+            {activeTab === 'keys' && (
+              <div id="keys-tab-content">
+                <KeyControlModule 
                   showToast={showToast} 
                   isInternetOnline={syncStatus.isInternetOnline} 
                 />

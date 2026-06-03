@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, User, Phone, Users, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2 } from 'lucide-react';
+import { Home, User, Phone, Users, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
 import { Resident } from '../types';
 
 interface ResidentsModuleProps {
@@ -35,6 +35,103 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const [stream, setStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; name: string } | null>(null);
+
+  // Dynamic Family Members List Inputs
+  const [newMemberInput, setNewMemberInput] = useState('');
+  const [newMemberPhoto, setNewMemberPhoto] = useState<string | null>(null);
+  const [isFamilyWebcamActive, setIsFamilyWebcamActive] = useState(false);
+  const familyVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [familyStream, setFamilyStream] = useState<MediaStream | null>(null);
+  const familyFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  interface FamilyMemberItem {
+    name: string;
+    photo?: string;
+  }
+
+  const getFamilyList = (raw: string): FamilyMemberItem[] => {
+    if (!raw) return [];
+    try {
+      if (raw.trim().startsWith('[')) {
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      // fallback to plain text list
+    }
+    return raw
+      .split(',')
+      .map(name => name.trim())
+      .filter(name => name.length > 0)
+      .map(name => ({ name }));
+  };
+
+  const startFamilyWebcam = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 320, height: 240, facingMode: 'user' }
+      });
+      setFamilyStream(mediaStream);
+      setIsFamilyWebcamActive(true);
+    } catch (err) {
+      console.error("Error accessing webcam", err);
+      showToast("Não foi possível acessar a webcam para o residente adicional.", "error");
+    }
+  };
+
+  const stopFamilyWebcam = () => {
+    if (familyStream) {
+      familyStream.getTracks().forEach(track => track.stop());
+      setFamilyStream(null);
+    }
+    setIsFamilyWebcamActive(false);
+  };
+
+  const captureFamilyPhoto = () => {
+    if (familyVideoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 300;
+      canvas.height = 225;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(familyVideoRef.current, 0, 0, 300, 225);
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        setNewMemberPhoto(dataUrl);
+        stopFamilyWebcam();
+      }
+    }
+  };
+
+  const handleFamilyFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewMemberPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddMember = () => {
+    if (!newMemberInput.trim()) return;
+    const currentList = getFamilyList(familyMembers);
+    // Avoid duplicates
+    if (currentList.some(item => item.name.toLowerCase() === newMemberInput.trim().toLowerCase())) {
+      setNewMemberInput('');
+      setNewMemberPhoto(null);
+      return;
+    }
+    const updatedList = [...currentList, { name: newMemberInput.trim(), photo: newMemberPhoto || undefined }];
+    setFamilyMembers(JSON.stringify(updatedList));
+    setNewMemberInput('');
+    setNewMemberPhoto(null);
+  };
+
+  const handleRemoveMember = (indexToRemove: number) => {
+    const currentList = getFamilyList(familyMembers);
+    const updatedList = currentList.filter((_, idx) => idx !== indexToRemove);
+    setFamilyMembers(updatedList.length > 0 ? JSON.stringify(updatedList) : '');
+  };
 
   const startWebcam = async () => {
     try {
@@ -89,8 +186,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
+      if (familyStream) {
+        familyStream.getTracks().forEach(track => track.stop());
+      }
     };
-  }, [stream]);
+  }, [stream, familyStream]);
 
   // Bind live stream in video element when ready
   useEffect(() => {
@@ -98,6 +198,12 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       videoRef.current.srcObject = stream;
     }
   }, [isWebcamActive, stream]);
+
+  useEffect(() => {
+    if (isFamilyWebcamActive && familyStream && familyVideoRef.current) {
+      familyVideoRef.current.srcObject = familyStream;
+    }
+  }, [isFamilyWebcamActive, familyStream]);
 
   // Building structure constants (8 floors x 4 apartments starting from 11 up to 84)
   const FLOORS = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -140,6 +246,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   // Update form inputs when selectedUnit changes
   useEffect(() => {
     stopWebcam();
+    setNewMemberInput('');
     if (selectedUnit) {
       const resObj = residents.find(r => r.unit === selectedUnit);
       if (resObj) {
@@ -517,6 +624,156 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                     placeholder="Nomes, vínculos de parentesco, funcionários ou outros residentes permanentes desta unidade"
                     className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-700 leading-normal"
                   />
+                </div>
+                
+                {/* List builder helper to register structured entries ("Cadastrar uma Lista") */}
+                <div className="mt-3 space-y-2 border border-slate-900 bg-slate-950/40 p-3 rounded-sm">
+                  <span className="block text-[9px] uppercase font-bold text-slate-400 tracking-wider">
+                    Gerenciador de Lista de Residentes
+                  </span>
+                  
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-500">
+                        <User size={12} className="opacity-70" />
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Nome completo (Ex: João Silva - Filho)"
+                        value={newMemberInput}
+                        onChange={(e) => setNewMemberInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMember();
+                          }
+                        }}
+                        className="w-full pl-8 pr-2 py-1.5 bg-slate-950 border border-slate-850 text-slate-200 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-705 font-mono"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddMember}
+                      className="px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-sm text-[10px] font-mono font-bold tracking-wider uppercase transition flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Plus size={11} />
+                      <span>Adicionar</span>
+                    </button>
+                  </div>
+
+                  {/* MINI WEBCAM / PHOTO CAPTURE CONTROLS FOR FAMILY MEMBER */}
+                  <div className="p-2 bg-slate-950/60 border border-slate-900 rounded-sm space-y-2">
+                    {isFamilyWebcamActive ? (
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="relative w-full h-32 bg-black border border-slate-850 rounded-sm overflow-hidden flex items-center justify-center">
+                          <video 
+                            ref={familyVideoRef} 
+                            autoPlay 
+                            playsInline 
+                            muted 
+                            className="w-full h-full object-cover transform -scale-x-100"
+                          />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            type="button"
+                            onClick={captureFamilyPhoto}
+                            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-sm text-[9px] font-mono uppercase tracking-wider font-bold transition cursor-pointer"
+                          >
+                            Capturar foto do residente
+                          </button>
+                          <button
+                            type="button"
+                            onClick={stopFamilyWebcam}
+                            className="px-2 py-1 bg-slate-900 text-slate-400 hover:bg-slate-800 rounded-sm text-[9px] font-mono uppercase tracking-wider transition cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={startFamilyWebcam}
+                            className="px-2 py-1 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-[9px] text-slate-300 font-mono rounded-sm transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Camera size={10} />
+                            <span>Câmera do Residente</span>
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => familyFileInputRef.current?.click()}
+                            className="px-2 py-1 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-[9px] text-slate-300 font-mono rounded-sm transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Upload size={10} />
+                            <span>Enviar Foto</span>
+                          </button>
+                          <input
+                            type="file"
+                            ref={familyFileInputRef}
+                            accept="image/*"
+                            onChange={handleFamilyFileUpload}
+                            className="hidden"
+                          />
+                        </div>
+
+                        {newMemberPhoto && (
+                          <div className="flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-950/40 px-2 py-0.5 rounded-sm">
+                            <img
+                              src={newMemberPhoto}
+                              alt="Thumbnail Residente"
+                              className="w-5 h-5 rounded-sm object-cover border border-emerald-500/20"
+                            />
+                            <span className="text-[8px] text-emerald-400 font-mono uppercase font-bold">Foto Pronta</span>
+                            <button
+                              type="button"
+                              onClick={() => setNewMemberPhoto(null)}
+                              className="text-red-400 hover:text-red-300 font-mono font-bold text-[9px] ml-1 cursor-pointer"
+                            >
+                              X
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {getFamilyList(familyMembers).length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950 border border-slate-900 rounded-sm max-h-[140px] overflow-y-auto">
+                      {getFamilyList(familyMembers).map((item, idx) => (
+                        <span 
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 pl-1.5 pr-1.5 py-1 bg-slate-900 border border-slate-850 text-slate-300 font-mono text-[9px] rounded-sm max-w-full"
+                        >
+                          {item.photo && (
+                            <img 
+                              src={item.photo} 
+                              alt="Foto Adicional" 
+                              className="w-5 h-5 rounded-full object-cover border border-slate-800 cursor-pointer shrink-0 hover:border-emerald-500/50 transition-colors"
+                              referrerPolicy="no-referrer"
+                              onClick={() => setSelectedPhoto({ url: item.photo!, name: item.name })}
+                            />
+                          )}
+                          <span className="truncate max-w-[120px]" title={item.name}>{item.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMember(idx)}
+                            className="text-slate-500 hover:text-red-400 font-bold ml-1 transition cursor-pointer p-0.5"
+                            title="Remover residente"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-[9px] text-slate-600 text-center font-mono py-2 uppercase border border-dashed border-slate-900/60 rounded-sm">
+                      Nenhum familiar na lista desta unidade
+                    </div>
+                  )}
                 </div>
               </div>
 

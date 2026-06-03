@@ -57,6 +57,19 @@ export interface ScheduledService {
   syncStatus: 'synced' | 'pending' | 'failed';
 }
 
+export interface KeyRecord {
+  id: string;
+  date: string; // yyyy-mm-dd
+  local: string; // Local
+  residentName: string; // Morador
+  unit: string; // Apto
+  pickupTime: string; // Hora entrega (e.g., 14:30)
+  returnTime?: string; // Hora devolução (e.g., 18:00)
+  gatekeeper: string; // Porteiro
+  status: 'retirada' | 'devolvida';
+  syncStatus: 'synced' | 'pending' | 'failed';
+}
+
 export interface SyncStatus {
   isInternetOnline: boolean;
   isBackendConnected: boolean;
