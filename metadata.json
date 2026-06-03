@@ -1,0 +1,6 @@
+{
+  "name": "Controle de Acesso Portaria",
+  "description": "Sistema de controle de acesso de prestadores de serviço para a portaria do condomínio.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
