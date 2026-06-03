@@ -1,1 +1,160 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+body {
+  background: #030508;
+}
+
+:root[data-theme='light'] body {
+  background: #f4f7fb;
+}
+
+body,
+[class*='bg-'],
+[class*='text-'],
+[class*='border-'] {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+:root[data-theme='light'] [class*='bg-[#030508]'] {
+  background-color: #f4f7fb !important;
+}
+
+:root[data-theme='light'] [class*='bg-[#05070a]'],
+:root[data-theme='light'] [class*='bg-[#07090f]'],
+:root[data-theme='light'] [class*='bg-[#0a0d14]'],
+:root[data-theme='light'] .bg-slate-950,
+:root[data-theme='light'] .bg-slate-950\/20,
+:root[data-theme='light'] .bg-slate-950\/30,
+:root[data-theme='light'] .bg-slate-950\/40,
+:root[data-theme='light'] .bg-slate-950\/60,
+:root[data-theme='light'] .bg-slate-950\/80,
+:root[data-theme='light'] .bg-slate-900,
+:root[data-theme='light'] .bg-slate-900\/20,
+:root[data-theme='light'] .bg-slate-900\/30,
+:root[data-theme='light'] .bg-slate-900\/40,
+:root[data-theme='light'] .bg-slate-900\/50,
+:root[data-theme='light'] .bg-slate-900\/60,
+:root[data-theme='light'] .bg-slate-900\/70,
+:root[data-theme='light'] .bg-slate-900\/80 {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme='light'] .bg-slate-800,
+:root[data-theme='light'] .bg-slate-800\/20,
+:root[data-theme='light'] .bg-slate-800\/30,
+:root[data-theme='light'] .bg-slate-800\/40,
+:root[data-theme='light'] .bg-slate-800\/50,
+:root[data-theme='light'] .bg-slate-800\/60,
+:root[data-theme='light'] .bg-slate-800\/70,
+:root[data-theme='light'] .bg-slate-800\/80,
+:root[data-theme='light'] .hover\:bg-slate-800:hover,
+:root[data-theme='light'] .hover\:bg-slate-800\/50:hover,
+:root[data-theme='light'] .hover\:bg-slate-800\/60:hover,
+:root[data-theme='light'] .hover\:bg-slate-800\/80:hover,
+:root[data-theme='light'] .hover\:bg-slate-900:hover {
+  background-color: #f1f5f9 !important;
+}
+
+:root[data-theme='light'] .text-white,
+:root[data-theme='light'] .text-slate-100,
+:root[data-theme='light'] .text-slate-200,
+:root[data-theme='light'] .text-slate-300,
+:root[data-theme='light'] .hover\:text-slate-200:hover {
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .text-slate-400,
+:root[data-theme='light'] .text-slate-500,
+:root[data-theme='light'] .text-slate-600,
+:root[data-theme='light'] .text-slate-700 {
+  color: #475569 !important;
+}
+
+:root[data-theme='light'] .border-slate-700,
+:root[data-theme='light'] .border-slate-800,
+:root[data-theme='light'] .border-slate-800\/40,
+:root[data-theme='light'] .border-slate-800\/50,
+:root[data-theme='light'] .border-slate-800\/60,
+:root[data-theme='light'] .border-slate-800\/80,
+:root[data-theme='light'] .border-slate-900,
+:root[data-theme='light'] .border-slate-900\/40,
+:root[data-theme='light'] .border-slate-900\/50,
+:root[data-theme='light'] .border-slate-900\/60,
+:root[data-theme='light'] .border-slate-900\/80,
+:root[data-theme='light'] .hover\:border-slate-800\/80:hover,
+:root[data-theme='light'] .divide-slate-900\/60 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #d7dee8 !important;
+}
+
+:root[data-theme='light'] .text-emerald-300,
+:root[data-theme='light'] .text-emerald-400,
+:root[data-theme='light'] .text-emerald-500 {
+  color: #047857 !important;
+}
+
+:root[data-theme='light'] .text-amber-300,
+:root[data-theme='light'] .text-amber-400,
+:root[data-theme='light'] .text-amber-500 {
+  color: #b45309 !important;
+}
+
+:root[data-theme='light'] .text-red-300,
+:root[data-theme='light'] .text-red-400,
+:root[data-theme='light'] .text-red-500 {
+  color: #dc2626 !important;
+}
+
+:root[data-theme='light'] .bg-emerald-950,
+:root[data-theme='light'] .bg-emerald-950\/10,
+:root[data-theme='light'] .bg-emerald-950\/20,
+:root[data-theme='light'] .bg-emerald-950\/30,
+:root[data-theme='light'] .bg-emerald-950\/40,
+:root[data-theme='light'] .bg-emerald-950\/60 {
+  background-color: #ecfdf5 !important;
+}
+
+:root[data-theme='light'] .bg-amber-950,
+:root[data-theme='light'] .bg-amber-950\/10,
+:root[data-theme='light'] .bg-amber-950\/20,
+:root[data-theme='light'] .bg-amber-950\/30,
+:root[data-theme='light'] .bg-amber-950\/40,
+:root[data-theme='light'] .bg-amber-950\/60 {
+  background-color: #fffbeb !important;
+}
+
+:root[data-theme='light'] .bg-red-950,
+:root[data-theme='light'] .bg-red-950\/10,
+:root[data-theme='light'] .bg-red-950\/20,
+:root[data-theme='light'] .bg-red-950\/30,
+:root[data-theme='light'] .bg-red-950\/40,
+:root[data-theme='light'] .bg-red-950\/60 {
+  background-color: #fef2f2 !important;
+}
+
+:root[data-theme='light'] .placeholder\:text-slate-600::placeholder,
+:root[data-theme='light'] .placeholder-slate-600::placeholder {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme='light'] input,
+:root[data-theme='light'] textarea,
+:root[data-theme='light'] select {
+  color-scheme: light;
+}
+
+:root[data-theme='light'] .shadow-xl,
+:root[data-theme='light'] .shadow-2xl {
+  box-shadow: 0 18px 45px rgb(15 23 42 / 0.12) !important;
+}

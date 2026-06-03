@@ -15,6 +15,12 @@ import ScheduledServicesModule from './components/ScheduledServicesModule';
 import SyncSettings from './components/SyncSettings';
 
 type Tab = 'control' | 'residents' | 'diaristas' | 'scheduled' | 'keys' | 'history' | 'status';
+type ThemeMode = 'light' | 'dark';
+
+function getTimeTheme(date = new Date()): ThemeMode {
+  const hour = date.getHours();
+  return hour >= 7 && hour < 19 ? 'light' : 'dark';
+}
 
 export default function App() {
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -28,6 +34,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('control');
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'warning' | 'error' } | null>(null);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getTimeTheme());
 
   const showToast = (message: string, type: 'success' | 'warning' | 'error' = 'success') => {
     setNotification({ message, type });
@@ -58,6 +65,19 @@ export default function App() {
     const poll = window.setInterval(fetchData, 6000);
     return () => window.clearInterval(poll);
   }, []);
+
+  useEffect(() => {
+    const updateTheme = () => setThemeMode(getTimeTheme());
+    updateTheme();
+
+    const timer = window.setInterval(updateTheme, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    document.documentElement.style.colorScheme = themeMode;
+  }, [themeMode]);
 
   const handleRegisterEntrance = async (newData: Omit<Visit, 'id' | 'entryTime' | 'syncStatus'>) => {
     try {
