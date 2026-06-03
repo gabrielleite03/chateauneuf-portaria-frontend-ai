@@ -195,6 +195,9 @@ try {
   Write-Host ""
   Write-Host "Instalacao preparada em: $InstallDir"
   Write-Host "Aplicacao: http://localhost:$FrontendPort"
+  if (-not $NoStart) {
+    Start-Process "http://localhost:$FrontendPort"
+  }
   Write-Host ""
   Write-Host "Verificar containers:"
   Write-Host "  docker compose --env-file .env.docker ps"
