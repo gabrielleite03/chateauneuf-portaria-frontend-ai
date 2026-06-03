@@ -181,22 +181,86 @@ docker compose --env-file .env.docker push
    docker-compose.yml
    .env.docker.example
    chateauneuf-docker-setup.zip
+   install-workstation.ps1
+   install-workstation.cmd
    ```
 
-3. Crie uma pasta para a aplicacao:
+3. Execute o instalador unico a partir da pasta onde os arquivos foram copiados:
+
+   ```powershell
+   .\install-workstation.ps1 `
+     -GoogleSheetId "ID_DA_SUA_PLANILHA"
+   ```
+
+   Por padrao, ele usa:
+
+   ```text
+   C:\ChateauneufPortaria
+   gabrielleite03/chateauneuf-portaria-frontend:latest
+   gabrielleite03/chateauneuf-portaria-backend:latest
+   http://localhost:8081
+   backend exposto em http://localhost:18080
+   ```
+
+   Para informar tudo explicitamente:
+
+   ```powershell
+   .\install-workstation.ps1 `
+     -GoogleSheetId "ID_DA_SUA_PLANILHA" `
+     -InstallDir "C:\ChateauneufPortaria" `
+     -FrontendImage "gabrielleite03/chateauneuf-portaria-frontend:latest" `
+     -BackendImage "gabrielleite03/chateauneuf-portaria-backend:latest"
+   ```
+
+   O script cria a pasta, copia `docker-compose.yml`, `.env.docker.example` e `chateauneuf-docker-setup.zip`, extrai o ZIP, configura `.env.docker`, prepara a credencial e sobe os containers.
+
+4. Acesse a aplicacao:
+
+   ```text
+   http://localhost:8081
+   ```
+
+5. Verifique se os containers estao rodando:
+
+   ```powershell
+   cd C:\ChateauneufPortaria
+   docker compose --env-file .env.docker ps
+   ```
+
+6. Ver logs:
+
+   ```powershell
+   docker compose --env-file .env.docker logs -f
+   ```
+
+7. Parar a aplicacao:
+
+   ```powershell
+   docker compose --env-file .env.docker down
+   ```
+
+8. Subir novamente:
+
+   ```powershell
+   docker compose --env-file .env.docker up -d
+   ```
+
+### Instalacao manual na estacao
+
+1. Crie uma pasta para a aplicacao:
 
    ```powershell
    mkdir C:\ChateauneufPortaria
    cd C:\ChateauneufPortaria
    ```
 
-4. Coloque os arquivos nessa pasta e extraia o ZIP:
+2. Coloque os arquivos nessa pasta e extraia o ZIP:
 
    ```powershell
    Expand-Archive .\chateauneuf-docker-setup.zip -DestinationPath . -Force
    ```
 
-5. Execute o script de configuracao:
+3. Execute o script de configuracao:
 
    ```powershell
    .\scripts\setup-docker.ps1 `
@@ -217,31 +281,31 @@ docker compose --env-file .env.docker push
 
    pelos valores reais.
 
-6. Acesse a aplicacao:
+4. Acesse a aplicacao:
 
    ```text
    http://localhost:8081
    ```
 
-7. Verifique se os containers estao rodando:
+5. Verifique se os containers estao rodando:
 
    ```powershell
    docker compose --env-file .env.docker ps
    ```
 
-8. Ver logs:
+6. Ver logs:
 
    ```powershell
    docker compose --env-file .env.docker logs -f
    ```
 
-9. Parar a aplicacao:
+7. Parar a aplicacao:
 
    ```powershell
    docker compose --env-file .env.docker down
    ```
 
-10. Subir novamente:
+8. Subir novamente:
 
     ```powershell
     docker compose --env-file .env.docker up -d
