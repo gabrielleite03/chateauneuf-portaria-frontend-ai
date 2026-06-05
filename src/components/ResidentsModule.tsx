@@ -4,12 +4,17 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, User, Phone, Users, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
+import { Home, User, Phone, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
 import { Resident } from '../types';
 
 interface ResidentsModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
   isInternetOnline: boolean;
+}
+
+interface FamilyMemberItem {
+  name: string;
+  photo?: string;
 }
 
 export default function ResidentsModule({ showToast, isInternetOnline }: ResidentsModuleProps) {
@@ -24,6 +29,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const [owner, setOwner] = useState('');
   const [phones, setPhones] = useState('');
   const [tenant, setTenant] = useState('');
+  const [tenantPhoto, setTenantPhoto] = useState<string | null>(null);
   const [familyMembers, setFamilyMembers] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,19 +41,22 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const [stream, setStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; name: string } | null>(null);
+  const [isTenantWebcamActive, setIsTenantWebcamActive] = useState(false);
+  const tenantVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [tenantStream, setTenantStream] = useState<MediaStream | null>(null);
+  const tenantFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Dynamic Family Members List Inputs
   const [newMemberInput, setNewMemberInput] = useState('');
   const [newMemberPhoto, setNewMemberPhoto] = useState<string | null>(null);
+  const [editingMemberIndex, setEditingMemberIndex] = useState<number | null>(null);
+  const [editingMemberName, setEditingMemberName] = useState('');
+  const [editingMemberPhoto, setEditingMemberPhoto] = useState<string | null>(null);
   const [isFamilyWebcamActive, setIsFamilyWebcamActive] = useState(false);
   const familyVideoRef = useRef<HTMLVideoElement | null>(null);
   const [familyStream, setFamilyStream] = useState<MediaStream | null>(null);
   const familyFileInputRef = useRef<HTMLInputElement | null>(null);
-
-  interface FamilyMemberItem {
-    name: string;
-    photo?: string;
-  }
+  const isEditingFamilyMember = editingMemberIndex !== null;
 
   const getFamilyList = (raw: string): FamilyMemberItem[] => {
     if (!raw) return [];
@@ -95,7 +104,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       if (ctx) {
         ctx.drawImage(familyVideoRef.current, 0, 0, 300, 225);
         const dataUrl = canvas.toDataURL('image/jpeg');
-        setNewMemberPhoto(dataUrl);
+        if (isEditingFamilyMember) {
+          setEditingMemberPhoto(dataUrl);
+        } else {
+          setNewMemberPhoto(dataUrl);
+        }
         stopFamilyWebcam();
       }
     }
@@ -106,7 +119,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setNewMemberPhoto(reader.result as string);
+        if (isEditingFamilyMember) {
+          setEditingMemberPhoto(reader.result as string);
+        } else {
+          setNewMemberPhoto(reader.result as string);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -127,10 +144,62 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
     setNewMemberPhoto(null);
   };
 
+  const handleStartEditMember = (index: number) => {
+    const currentList = getFamilyList(familyMembers);
+    const item = currentList[index];
+    if (!item) return;
+
+    stopFamilyWebcam();
+    setEditingMemberIndex(index);
+    setEditingMemberName(item.name);
+    setEditingMemberPhoto(item.photo || null);
+    setNewMemberInput('');
+    setNewMemberPhoto(null);
+  };
+
+  const handleCancelEditMember = () => {
+    stopFamilyWebcam();
+    setEditingMemberIndex(null);
+    setEditingMemberName('');
+    setEditingMemberPhoto(null);
+  };
+
+  const handleSaveMemberEdit = () => {
+    if (editingMemberIndex === null) return;
+
+    const trimmedName = editingMemberName.trim();
+    if (!trimmedName) return;
+
+    const currentList = getFamilyList(familyMembers);
+    if (!currentList[editingMemberIndex]) {
+      handleCancelEditMember();
+      return;
+    }
+
+    const hasDuplicate = currentList.some((item, idx) => (
+      idx !== editingMemberIndex && item.name.toLowerCase() === trimmedName.toLowerCase()
+    ));
+    if (hasDuplicate) {
+      showToast('Ja existe outro residente com esse nome nesta unidade.', 'warning');
+      return;
+    }
+
+    const updatedList = currentList.map((item, idx) => (
+      idx === editingMemberIndex
+        ? { ...item, name: trimmedName, photo: editingMemberPhoto || undefined }
+        : item
+    ));
+    setFamilyMembers(JSON.stringify(updatedList));
+    handleCancelEditMember();
+  };
+
   const handleRemoveMember = (indexToRemove: number) => {
     const currentList = getFamilyList(familyMembers);
     const updatedList = currentList.filter((_, idx) => idx !== indexToRemove);
     setFamilyMembers(updatedList.length > 0 ? JSON.stringify(updatedList) : '');
+    if (editingMemberIndex !== null) {
+      handleCancelEditMember();
+    }
   };
 
   const startWebcam = async () => {
@@ -180,6 +249,52 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
     }
   };
 
+  const startTenantWebcam = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 320, height: 240, facingMode: 'user' }
+      });
+      setTenantStream(mediaStream);
+      setIsTenantWebcamActive(true);
+    } catch (err) {
+      console.error("Error accessing webcam", err);
+      showToast("Nao foi possivel acessar a webcam para a foto do inquilino.", "error");
+    }
+  };
+
+  const stopTenantWebcam = () => {
+    if (tenantStream) {
+      tenantStream.getTracks().forEach(track => track.stop());
+      setTenantStream(null);
+    }
+    setIsTenantWebcamActive(false);
+  };
+
+  const captureTenantPhoto = () => {
+    if (tenantVideoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 240;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(tenantVideoRef.current, 0, 0, 320, 240);
+        setTenantPhoto(canvas.toDataURL('image/jpeg'));
+        stopTenantWebcam();
+      }
+    }
+  };
+
+  const handleTenantFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTenantPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Turn off webcam tracks if component unmounts
   useEffect(() => {
     return () => {
@@ -189,8 +304,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       if (familyStream) {
         familyStream.getTracks().forEach(track => track.stop());
       }
+      if (tenantStream) {
+        tenantStream.getTracks().forEach(track => track.stop());
+      }
     };
-  }, [stream, familyStream]);
+  }, [stream, familyStream, tenantStream]);
 
   // Bind live stream in video element when ready
   useEffect(() => {
@@ -204,6 +322,12 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       familyVideoRef.current.srcObject = familyStream;
     }
   }, [isFamilyWebcamActive, familyStream]);
+
+  useEffect(() => {
+    if (isTenantWebcamActive && tenantStream && tenantVideoRef.current) {
+      tenantVideoRef.current.srcObject = tenantStream;
+    }
+  }, [isTenantWebcamActive, tenantStream]);
 
   // Building structure constants (8 floors x 4 apartments starting from 11 up to 84)
   const FLOORS = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -225,6 +349,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
           setOwner(resObj.owner || '');
           setPhones(resObj.phones || '');
           setTenant(resObj.tenant || '');
+          setTenantPhoto(resObj.tenantPhoto || null);
           setFamilyMembers(resObj.familyMembers || '');
           setPhoto(resObj.photo || null);
         }
@@ -246,13 +371,17 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   // Update form inputs when selectedUnit changes
   useEffect(() => {
     stopWebcam();
+    stopTenantWebcam();
     setNewMemberInput('');
+    setNewMemberPhoto(null);
+    handleCancelEditMember();
     if (selectedUnit) {
       const resObj = residents.find(r => r.unit === selectedUnit);
       if (resObj) {
         setOwner(resObj.owner || '');
         setPhones(resObj.phones || '');
         setTenant(resObj.tenant || '');
+        setTenantPhoto(resObj.tenantPhoto || null);
         setFamilyMembers(resObj.familyMembers || '');
         setPhoto(resObj.photo || null);
         setErrors({});
@@ -261,6 +390,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
         setOwner('');
         setPhones('');
         setTenant('');
+        setTenantPhoto(null);
         setFamilyMembers('');
         setPhoto(null);
         setErrors({});
@@ -298,6 +428,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
         owner: owner.trim(),
         phones: phones.trim(),
         tenant: tenant.trim() || undefined,
+        tenantPhoto: tenantPhoto || undefined,
         familyMembers: familyMembers.trim() || undefined,
         photo: photo || undefined
       };
@@ -605,29 +736,106 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                     className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-700"
                   />
                 </div>
+
+                <div className="mt-3 border border-slate-900 bg-slate-950/40 p-3 rounded-sm">
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="relative w-28 h-24 bg-slate-950 border border-slate-850 flex items-center justify-center overflow-hidden rounded-sm shrink-0">
+                      {isTenantWebcamActive ? (
+                        <video
+                          ref={tenantVideoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="w-full h-full object-cover transform -scale-x-100"
+                        />
+                      ) : tenantPhoto ? (
+                        <img
+                          src={tenantPhoto}
+                          alt="Foto do inquilino"
+                          className="w-full h-full object-cover cursor-pointer hover:opacity-85 transition-opacity"
+                          referrerPolicy="no-referrer"
+                          onClick={() => setSelectedPhoto({ url: tenantPhoto, name: tenant || `Inquilino Apto ${selectedUnit}` })}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-700 font-mono text-center p-2">
+                          <User size={18} className="mb-1 text-slate-700" />
+                          <span className="text-[8px] uppercase tracking-wider font-bold">Sem Foto</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 w-full space-y-2">
+                      {isTenantWebcamActive ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={captureTenantPhoto}
+                            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer"
+                          >
+                            <Camera size={12} />
+                            <span>Capturar</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={stopTenantWebcam}
+                            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-mono text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer"
+                          >
+                            <X size={12} />
+                            <span>Cancelar</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={startTenantWebcam}
+                            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer"
+                          >
+                            <Camera size={12} />
+                            <span>Camera</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => tenantFileInputRef.current?.click()}
+                            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer"
+                          >
+                            <Upload size={12} />
+                            <span>Arquivo</span>
+                          </button>
+                        </div>
+                      )}
+
+                      <input
+                        type="file"
+                        ref={tenantFileInputRef}
+                        accept="image/*"
+                        onChange={handleTenantFileUpload}
+                        className="hidden"
+                      />
+
+                      {tenantPhoto && !isTenantWebcamActive && (
+                        <button
+                          type="button"
+                          onClick={() => setTenantPhoto(null)}
+                          className="w-full flex items-center justify-center gap-1 py-1 px-3 bg-red-950/30 hover:bg-red-950/60 border border-red-900/30 hover:border-red-900 text-red-400 font-mono text-[9px] uppercase tracking-wider rounded-sm transition cursor-pointer"
+                        >
+                          <Trash2 size={10} />
+                          <span>Excluir Foto do Inquilino</span>
+                        </button>
+                      )}
+
+                      <p className="text-[8px] text-slate-600 font-mono leading-relaxed uppercase">
+                        Foto vinculada ao inquilino atual desta unidade.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* FAMILY MEMBERS (FAMILIARES) */}
               <div>
-                <label className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 flex justify-between">
-                  <span>Familiares / Moradores Adicionais</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute top-2.5 left-3 pointer-events-none text-slate-500">
-                    <Users size={13} />
-                  </span>
-                  <textarea
-                    name="familyMembers"
-                    rows={3}
-                    value={familyMembers}
-                    onChange={(e) => setFamilyMembers(e.target.value)}
-                    placeholder="Nomes, vínculos de parentesco, funcionários ou outros residentes permanentes desta unidade"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-700 leading-normal"
-                  />
-                </div>
-                
                 {/* List builder helper to register structured entries ("Cadastrar uma Lista") */}
-                <div className="mt-3 space-y-2 border border-slate-900 bg-slate-950/40 p-3 rounded-sm">
+                <div className="space-y-2 border border-slate-900 bg-slate-950/40 p-3 rounded-sm">
                   <span className="block text-[9px] uppercase font-bold text-slate-400 tracking-wider">
                     Gerenciador de Lista de Residentes
                   </span>
@@ -640,12 +848,22 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                       <input
                         type="text"
                         placeholder="Nome completo (Ex: João Silva - Filho)"
-                        value={newMemberInput}
-                        onChange={(e) => setNewMemberInput(e.target.value)}
+                        value={isEditingFamilyMember ? editingMemberName : newMemberInput}
+                        onChange={(e) => {
+                          if (isEditingFamilyMember) {
+                            setEditingMemberName(e.target.value);
+                          } else {
+                            setNewMemberInput(e.target.value);
+                          }
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            handleAddMember();
+                            if (isEditingFamilyMember) {
+                              handleSaveMemberEdit();
+                            } else {
+                              handleAddMember();
+                            }
                           }
                         }}
                         className="w-full pl-8 pr-2 py-1.5 bg-slate-950 border border-slate-850 text-slate-200 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-705 font-mono"
@@ -653,12 +871,22 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                     </div>
                     <button
                       type="button"
-                      onClick={handleAddMember}
+                      onClick={isEditingFamilyMember ? handleSaveMemberEdit : handleAddMember}
                       className="px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-sm text-[10px] font-mono font-bold tracking-wider uppercase transition flex items-center gap-1 cursor-pointer shrink-0"
                     >
-                      <Plus size={11} />
-                      <span>Adicionar</span>
+                      {isEditingFamilyMember ? <Check size={11} /> : <Plus size={11} />}
+                      <span>{isEditingFamilyMember ? 'Atualizar' : 'Adicionar'}</span>
                     </button>
+                    {isEditingFamilyMember && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditMember}
+                        className="px-2 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 rounded-sm text-[10px] font-mono font-bold tracking-wider uppercase transition flex items-center gap-1 cursor-pointer shrink-0"
+                        title="Cancelar edicao"
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
                   </div>
 
                   {/* MINI WEBCAM / PHOTO CAPTURE CONTROLS FOR FAMILY MEMBER */}
@@ -680,7 +908,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                             onClick={captureFamilyPhoto}
                             className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-sm text-[9px] font-mono uppercase tracking-wider font-bold transition cursor-pointer"
                           >
-                            Capturar foto do residente
+                            {isEditingFamilyMember ? 'Atualizar foto do residente' : 'Capturar foto do residente'}
                           </button>
                           <button
                             type="button"
@@ -720,17 +948,25 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                           />
                         </div>
 
-                        {newMemberPhoto && (
+                        {(isEditingFamilyMember ? editingMemberPhoto : newMemberPhoto) && (
                           <div className="flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-950/40 px-2 py-0.5 rounded-sm">
                             <img
-                              src={newMemberPhoto}
+                              src={(isEditingFamilyMember ? editingMemberPhoto : newMemberPhoto) || ''}
                               alt="Thumbnail Residente"
                               className="w-5 h-5 rounded-sm object-cover border border-emerald-500/20"
                             />
-                            <span className="text-[8px] text-emerald-400 font-mono uppercase font-bold">Foto Pronta</span>
+                            <span className="text-[8px] text-emerald-400 font-mono uppercase font-bold">
+                              {isEditingFamilyMember ? 'Foto Atual' : 'Foto Pronta'}
+                            </span>
                             <button
                               type="button"
-                              onClick={() => setNewMemberPhoto(null)}
+                              onClick={() => {
+                                if (isEditingFamilyMember) {
+                                  setEditingMemberPhoto(null);
+                                } else {
+                                  setNewMemberPhoto(null);
+                                }
+                              }}
                               className="text-red-400 hover:text-red-300 font-mono font-bold text-[9px] ml-1 cursor-pointer"
                             >
                               X
@@ -742,31 +978,67 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                   </div>
 
                   {getFamilyList(familyMembers).length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950 border border-slate-900 rounded-sm max-h-[140px] overflow-y-auto">
+                    <div className="flex flex-col gap-2 p-2 bg-slate-950 border border-slate-900 rounded-sm max-h-[220px] overflow-y-auto">
                       {getFamilyList(familyMembers).map((item, idx) => (
-                        <span 
+                        <div
                           key={idx}
-                          className="inline-flex items-center gap-1.5 pl-1.5 pr-1.5 py-1 bg-slate-900 border border-slate-850 text-slate-300 font-mono text-[9px] rounded-sm max-w-full"
+                          className="flex items-center gap-2 p-2 bg-slate-900 border border-slate-850 text-slate-300 font-mono rounded-sm min-w-0"
                         >
+                          <button
+                            type="button"
+                            onClick={() => item.photo && setSelectedPhoto({ url: item.photo, name: item.name })}
+                            disabled={!item.photo}
+                            className="w-9 h-9 rounded-sm bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0 overflow-hidden disabled:cursor-default enabled:cursor-pointer enabled:hover:border-emerald-500/50 transition-colors"
+                            title={item.photo ? 'Visualizar foto do residente' : 'Residente sem foto'}
+                          >
+                            {item.photo ? (
+                              <img
+                                src={item.photo}
+                                alt={`Foto de ${item.name}`}
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <User size={15} className="text-slate-600" />
+                            )}
+                          </button>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[10px] text-slate-100 font-bold uppercase tracking-wide" title={item.name}>
+                              {item.name}
+                            </p>
+                            <p className="text-[8px] text-slate-500 uppercase tracking-wider">
+                              {item.photo ? 'Foto cadastrada' : 'Sem foto cadastrada'}
+                            </p>
+                          </div>
+
                           {item.photo && (
-                            <img 
-                              src={item.photo} 
-                              alt="Foto Adicional" 
-                              className="w-5 h-5 rounded-full object-cover border border-slate-800 cursor-pointer shrink-0 hover:border-emerald-500/50 transition-colors"
-                              referrerPolicy="no-referrer"
+                            <button
+                              type="button"
                               onClick={() => setSelectedPhoto({ url: item.photo!, name: item.name })}
-                            />
+                              className="text-slate-500 hover:text-sky-400 font-bold transition cursor-pointer p-1"
+                              title="Visualizar foto"
+                            >
+                              <Eye size={11} />
+                            </button>
                           )}
-                          <span className="truncate max-w-[120px]" title={item.name}>{item.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditMember(idx)}
+                            className="text-slate-500 hover:text-emerald-400 font-bold transition cursor-pointer p-1"
+                            title="Editar nome e foto do residente"
+                          >
+                            <Edit3 size={11} />
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleRemoveMember(idx)}
-                            className="text-slate-500 hover:text-red-400 font-bold ml-1 transition cursor-pointer p-0.5"
+                            className="text-slate-500 hover:text-red-400 font-bold transition cursor-pointer p-1"
                             title="Remover residente"
                           >
-                            <X size={10} />
+                            <X size={11} />
                           </button>
-                        </span>
+                        </div>
                       ))}
                     </div>
                   ) : (

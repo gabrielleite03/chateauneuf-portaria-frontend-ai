@@ -23,6 +23,7 @@ export interface Resident {
   owner: string; // PROPRIETARIO
   phones: string; // TELEFONES
   tenant?: string; // INQUILINO
+  tenantPhoto?: string; // Base64 image do inquilino
   familyMembers?: string; // FAMILIARES
   photo?: string; // Base64 image
   lastUpdated?: string; // ISO string
