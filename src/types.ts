@@ -8,7 +8,7 @@ export interface Visit {
   name: string;
   document: string;
   company: string;
-  visitorType: 'Visitante' | 'Prestador de Serviço' | 'Fornecedor' | 'Outro';
+  visitorType: 'Visitante' | 'Prestador de Servico' | 'Prestador de Serviço' | 'Prestador de ServiÃ§o' | 'Fornecedor' | 'Compra' | 'Outro';
   unit: string;
   licensePlate?: string;
   entryTime: string; // ISO string
@@ -20,7 +20,7 @@ export interface Visit {
 
 export interface Resident {
   unit: string; // APTO, e.g. "101"
-  owner: string; // PROPRIETÁRIO
+  owner: string; // PROPRIETARIO
   phones: string; // TELEFONES
   tenant?: string; // INQUILINO
   familyMembers?: string; // FAMILIARES
@@ -36,7 +36,7 @@ export interface DiaristaEntry {
   unit: string; // Apto
   authorizedBy: string; // Autorizado por
   entryTime: string; // Hora da Entrada (ISO string or time string)
-  exitTime?: string; // Hora da Saída (ISO string or time string)
+  exitTime?: string; // Hora da Saida (ISO string or time string)
   gatekeeper: string; // Porteiro
   photo?: string; // Base64 image
   syncStatus: 'synced' | 'pending' | 'failed';
@@ -64,9 +64,24 @@ export interface KeyRecord {
   residentName: string; // Morador
   unit: string; // Apto
   pickupTime: string; // Hora entrega (e.g., 14:30)
-  returnTime?: string; // Hora devolução (e.g., 18:00)
+  returnTime?: string; // Hora devolucao (e.g., 18:00)
   gatekeeper: string; // Porteiro
   status: 'retirada' | 'devolvida';
+  syncStatus: 'synced' | 'pending' | 'failed';
+}
+
+export interface ShoppingDelivery {
+  id: string;
+  unit: string;
+  courierName: string;
+  document: string;
+  store: string;
+  product: string;
+  notes?: string;
+  photo?: string;
+  receivedAt: string;
+  withdrawnAt?: string;
+  status: 'aguardando_retirada' | 'retirada';
   syncStatus: 'synced' | 'pending' | 'failed';
 }
 

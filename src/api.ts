@@ -1,4 +1,4 @@
-import { SyncStatus, Visit } from './types';
+import { KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
 
 type BackendSyncStatus = {
   online: boolean;
@@ -22,6 +22,7 @@ type BackendAccessLog = {
 };
 
 type CreateVisitInput = Omit<Visit, 'id' | 'entryTime' | 'syncStatus'>;
+type CreateShoppingInput = Omit<ShoppingDelivery, 'id' | 'receivedAt' | 'withdrawnAt' | 'status' | 'syncStatus'>;
 
 const syncStatusMap: Record<BackendAccessLog['sync_status'], Visit['syncStatus']> = {
   PENDENTE_SYNC: 'pending',
@@ -120,4 +121,26 @@ export async function checkoutVisit(id: string): Promise<Visit> {
 
 export async function runSync(): Promise<SyncStatus> {
   return toSyncStatus(await request<BackendSyncStatus>('/api/sync/run', { method: 'POST' }));
+}
+
+export async function fetchShoppingDeliveries(): Promise<ShoppingDelivery[]> {
+  return request<ShoppingDelivery[]>('/api/shopping');
+}
+
+export async function fetchKeyRecords(): Promise<KeyRecord[]> {
+  return request<KeyRecord[]>('/api/keys');
+}
+
+export async function createShoppingDelivery(input: CreateShoppingInput): Promise<ShoppingDelivery> {
+  return request<ShoppingDelivery>('/api/shopping', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function withdrawShoppingDelivery(id: string): Promise<ShoppingDelivery> {
+  return request<ShoppingDelivery>('/api/shopping/withdraw', {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+  });
 }

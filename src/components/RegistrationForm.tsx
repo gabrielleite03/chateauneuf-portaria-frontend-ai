@@ -59,7 +59,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
     setIsWebcamActive(false);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
       canvas.width = 320;
@@ -67,7 +67,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, 320, 240);
-        const dataUrl = canvas.toDataURL('image/jpeg');
+        const dataUrl = await resizeImageDataUrl(canvas.toDataURL('image/jpeg', 0.7));
         setPhoto(dataUrl);
         stopWebcam();
       }
@@ -78,8 +78,13 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhoto(reader.result as string);
+      reader.onloadend = async () => {
+        try {
+          setPhoto(await resizeImageDataUrl(reader.result as string));
+        } catch (err) {
+          console.error('Failed to resize uploaded visitor photo', err);
+          setErrors(prev => ({ ...prev, form: 'Nao foi possivel reduzir a foto selecionada.' }));
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -575,4 +580,44 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
 
     </div>
   );
+}
+
+async function resizeImageDataUrl(dataUrl: string): Promise<string> {
+  const image = await loadImage(dataUrl);
+  const maxSides = [240, 200, 160, 120];
+  const qualities = [0.65, 0.55, 0.45, 0.35];
+  let lastCandidate = dataUrl;
+
+  for (const maxSide of maxSides) {
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) continue;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+
+    for (const quality of qualities) {
+      const resized = canvas.toDataURL('image/jpeg', quality);
+      lastCandidate = resized;
+      if (resized.length <= 45000) {
+        return resized;
+      }
+    }
+  }
+
+  return lastCandidate;
+}
+
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('image load failed'));
+    image.src = dataUrl;
+  });
 }

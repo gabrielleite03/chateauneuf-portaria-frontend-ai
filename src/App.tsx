@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Building2, CheckCircle2, History, Key, LayoutDashboard, Settings, Sparkles, WifiOff, Wrench } from 'lucide-react';
+import { Building2, CheckCircle2, History, Key, LayoutDashboard, Package, Settings, Sparkles, WifiOff, Wrench } from 'lucide-react';
 
-import { checkoutVisit, createVisit, fetchSyncStatus, fetchVisits, runSync } from './api';
-import { SyncStatus, Visit } from './types';
+import { checkoutVisit, createShoppingDelivery, createVisit, fetchKeyRecords, fetchShoppingDeliveries, fetchSyncStatus, fetchVisits, runSync, withdrawShoppingDelivery } from './api';
+import { KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
 import ActiveVisits from './components/ActiveVisits';
 import Header from './components/Header';
 import HistoryVisits from './components/HistoryVisits';
@@ -12,9 +12,10 @@ import RegistrationForm from './components/RegistrationForm';
 import ResidentsModule from './components/ResidentsModule';
 import DiaristasModule from './components/DiaristasModule';
 import ScheduledServicesModule from './components/ScheduledServicesModule';
+import ShoppingModule from './components/ShoppingModule';
 import SyncSettings from './components/SyncSettings';
 
-type Tab = 'control' | 'residents' | 'diaristas' | 'scheduled' | 'keys' | 'history' | 'status';
+type Tab = 'control' | 'residents' | 'diaristas' | 'scheduled' | 'shopping' | 'keys' | 'history' | 'status';
 type ThemeMode = 'light' | 'dark';
 
 function getTimeTheme(date = new Date()): ThemeMode {
@@ -24,6 +25,8 @@ function getTimeTheme(date = new Date()): ThemeMode {
 
 export default function App() {
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [shoppingDeliveries, setShoppingDeliveries] = useState<ShoppingDelivery[]>([]);
+  const [keyRecords, setKeyRecords] = useState<KeyRecord[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     isInternetOnline: true,
     isBackendConnected: false,
@@ -43,13 +46,17 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      const [statusData, visitsData] = await Promise.all([
+      const [statusData, visitsData, shoppingData, keyData] = await Promise.all([
         fetchSyncStatus(),
         fetchVisits(),
+        fetchShoppingDeliveries(),
+        fetchKeyRecords(),
       ]);
 
       setSyncStatus(statusData);
       setVisits(visitsData);
+      setShoppingDeliveries(shoppingData);
+      setKeyRecords(keyData);
     } catch (err) {
       console.error('Backend Go indisponivel.', err);
       setSyncStatus(prev => ({
@@ -118,6 +125,45 @@ export default function App() {
     }
   };
 
+  const handleRegisterShopping = async (newData: Omit<ShoppingDelivery, 'id' | 'receivedAt' | 'withdrawnAt' | 'status' | 'syncStatus'>) => {
+    try {
+      const createdDelivery = await createShoppingDelivery(newData);
+      setShoppingDeliveries(prev => [createdDelivery, ...prev]);
+      await fetchData();
+
+      showToast(
+        syncStatus.isInternetOnline
+          ? `Compra do ${createdDelivery.unit} registrada no backend Go.`
+          : `Compra do ${createdDelivery.unit} gravada localmente e pendente de sincronizacao.`,
+        syncStatus.isInternetOnline ? 'success' : 'warning',
+      );
+
+      return createdDelivery;
+    } catch (err) {
+      console.error(err);
+      showToast('Nao foi possivel salvar a compra no backend Go.', 'error');
+      return null;
+    }
+  };
+
+  const handleWithdrawShopping = async (id: string) => {
+    try {
+      const updatedDelivery = await withdrawShoppingDelivery(id);
+      setShoppingDeliveries(prev => prev.map(delivery => (delivery.id === id ? updatedDelivery : delivery)));
+      await fetchData();
+
+      showToast(
+        syncStatus.isInternetOnline
+          ? `Retirada da compra do ${updatedDelivery.unit} registrada no backend Go.`
+          : `Retirada da compra do ${updatedDelivery.unit} gravada localmente e pendente de sincronizacao.`,
+        syncStatus.isInternetOnline ? 'success' : 'warning',
+      );
+    } catch (err) {
+      console.error(err);
+      showToast('Nao foi possivel registrar a retirada da compra no backend Go.', 'error');
+    }
+  };
+
   const handleManualSync = async () => {
     if (!syncStatus.isInternetOnline) return;
 
@@ -169,6 +215,9 @@ export default function App() {
             </TabButton>
             <TabButton active={activeTab === 'scheduled'} onClick={() => setActiveTab('scheduled')} icon={<Wrench size={14} />}>
               Servicos Agendados
+            </TabButton>
+            <TabButton active={activeTab === 'shopping'} onClick={() => setActiveTab('shopping')} icon={<Package size={14} />}>
+              Compras
             </TabButton>
             <TabButton active={activeTab === 'keys'} onClick={() => setActiveTab('keys')} icon={<Key size={14} />}>
               Controle de Chaves
@@ -223,7 +272,9 @@ export default function App() {
                 <div className="lg:col-span-7">
                   <ActiveVisits
                     visits={visits}
+                    shoppingDeliveries={shoppingDeliveries}
                     onRegisterExit={handleRegisterExit}
+                    onWithdrawShopping={handleWithdrawShopping}
                     isInternetOnline={syncStatus.isInternetOnline}
                     onForceSync={handleManualSync}
                   />
@@ -243,11 +294,15 @@ export default function App() {
               <ScheduledServicesModule showToast={showToast} isInternetOnline={syncStatus.isInternetOnline} />
             )}
 
+            {activeTab === 'shopping' && (
+              <ShoppingModule onRegister={handleRegisterShopping} isInternetOnline={syncStatus.isInternetOnline} />
+            )}
+
             {activeTab === 'keys' && (
               <KeyControlModule showToast={showToast} isInternetOnline={syncStatus.isInternetOnline} />
             )}
 
-            {activeTab === 'history' && <HistoryVisits visits={visits} />}
+            {activeTab === 'history' && <HistoryVisits visits={visits} shoppingDeliveries={shoppingDeliveries} keyRecords={keyRecords} />}
 
             {activeTab === 'status' && (
               <SyncSettings
