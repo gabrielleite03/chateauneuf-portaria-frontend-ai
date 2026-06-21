@@ -143,15 +143,15 @@ export default function HistoryVisits({ visits, shoppingDeliveries, keyRecords }
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-900/60">
           <div className="relative md:col-span-2">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
-              <Search size={12} />
+              <Search size={16} />
             </span>
             <input
               type="text"
               id="input-history-search"
-              placeholder="Pesquisar por nome, apto, doc, produto, chave..."
+              placeholder="Pesquisar por apartamento, nome, documento, produto, chave..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-600"
+              className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-sm focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/20 transition placeholder-slate-600"
             />
           </div>
 
@@ -161,7 +161,7 @@ export default function HistoryVisits({ visits, shoppingDeliveries, keyRecords }
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value as any)}
               id="select-history-date-filter"
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition cursor-pointer"
+              className="w-full pl-9 pr-3 py-3 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-sm focus:outline-none focus:border-emerald-500/50 transition cursor-pointer"
             >
               <option value="all">Todas as datas</option>
               <option value="today">Hoje</option>
@@ -175,7 +175,7 @@ export default function HistoryVisits({ visits, shoppingDeliveries, keyRecords }
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
               id="select-history-status-filter"
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition cursor-pointer"
+              className="w-full pl-9 pr-3 py-3 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-sm focus:outline-none focus:border-emerald-500/50 transition cursor-pointer"
             >
               <option value="all">Todos os status</option>
               <option value="active">Em andamento</option>
@@ -196,7 +196,7 @@ export default function HistoryVisits({ visits, shoppingDeliveries, keyRecords }
           </div>
         ) : (
           <table className="w-full text-left border-collapse" id="history-table">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="bg-slate-950/80 border-b border-slate-900 text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">
                 <th className="px-6 py-3">Registro / Documento</th>
                 <th className="px-5 py-3">Origem / Tipo</th>
@@ -462,7 +462,7 @@ export default function HistoryVisits({ visits, shoppingDeliveries, keyRecords }
           onClick={() => setSelectedPhoto(null)}
         >
           <div
-            className="relative max-w-sm w-full bg-slate-900 border border-slate-800 p-4 rounded-sm shadow-2xl font-mono text-xs"
+            className="relative max-w-5xl w-full bg-slate-900 border border-slate-800 p-4 rounded-sm shadow-2xl font-mono text-xs"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -478,7 +478,7 @@ export default function HistoryVisits({ visits, shoppingDeliveries, keyRecords }
               src={selectedPhoto.url}
               alt={selectedPhoto.name}
               referrerPolicy="no-referrer"
-              className="w-full aspect-[4/3] object-cover border border-slate-800 bg-slate-950 rounded-sm"
+              className="w-full max-h-[78vh] object-contain border border-slate-800 bg-slate-950 rounded-sm"
             />
             <div className="mt-3 text-slate-200">
               <span className="text-slate-500 font-bold uppercase text-[10px]">{selectedPhoto.label}:</span>

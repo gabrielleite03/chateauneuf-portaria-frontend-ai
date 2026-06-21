@@ -140,6 +140,9 @@ Com imagens publicadas no DockerHub:
 ### Preparacao manual
 
 1. Copie `.env.docker.example` para `.env.docker` e preencha `GOOGLE_SHEET_ID`.
+   Para conta Google gratuita, use o Google Drive para computador e preencha `LOCAL_PHOTO_DIR` com uma pasta local sincronizada, por exemplo `C:\Users\AdminUser\Google Drive\Meu Drive\Fotos Portaria`. O backend salva fotos de entradas, compras, diaristas e servicos agendados em `/app/photos`, e o Docker monta essa pasta do host nesse caminho.
+   Fotos de moradores permanecem embutidas no cadastro para preservar a melhor qualidade possivel dentro do registro.
+   `GOOGLE_DRIVE_FOLDER_ID` fica opcional e deve ser usado apenas com Drive compartilhado/Workspace.
 2. Coloque a credencial do service account em `secrets/google-service-account.json`.
 3. Suba a aplicacao:
 

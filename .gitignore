@@ -11,5 +11,6 @@ coverage/
 secrets/*.json
 docker-data/
 docker-setup-package/
+photos/
 *.zip
 project.md

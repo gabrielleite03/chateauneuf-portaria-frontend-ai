@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Building2, CheckCircle2, History, Key, LayoutDashboard, Package, Settings, Sparkles, WifiOff, Wrench } from 'lucide-react';
+import { Building2, CalendarDays, CheckCircle2, History, Key, LayoutDashboard, Package, Settings, Sparkles, WifiOff, Wrench } from 'lucide-react';
 
 import { checkoutVisit, createShoppingDelivery, createVisit, fetchKeyRecords, fetchShoppingDeliveries, fetchSyncStatus, fetchVisits, runSync, withdrawShoppingDelivery } from './api';
 import { KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
@@ -14,8 +14,9 @@ import DiaristasModule from './components/DiaristasModule';
 import ScheduledServicesModule from './components/ScheduledServicesModule';
 import ShoppingModule from './components/ShoppingModule';
 import SyncSettings from './components/SyncSettings';
+import ReservationsModule from './components/ReservationsModule';
 
-type Tab = 'control' | 'residents' | 'diaristas' | 'scheduled' | 'shopping' | 'keys' | 'history' | 'status';
+type Tab = 'control' | 'residents' | 'diaristas' | 'scheduled' | 'reservations' | 'shopping' | 'keys' | 'history' | 'status';
 type ThemeMode = 'light' | 'dark';
 
 function getTimeTheme(date = new Date()): ThemeMode {
@@ -202,7 +203,7 @@ export default function App() {
       />
 
       <nav className="bg-[#07090f] border-b border-slate-900/80">
-        <div className="max-w-7xl mx-auto px-6 overflow-x-auto">
+        <div className="max-w-[1800px] mx-auto px-6 overflow-x-auto">
           <div className="flex space-x-8 min-w-max">
             <TabButton active={activeTab === 'control'} onClick={() => setActiveTab('control')} icon={<LayoutDashboard size={14} />}>
               Painel de Controle
@@ -215,6 +216,9 @@ export default function App() {
             </TabButton>
             <TabButton active={activeTab === 'scheduled'} onClick={() => setActiveTab('scheduled')} icon={<Wrench size={14} />}>
               Servicos Agendados
+            </TabButton>
+            <TabButton active={activeTab === 'reservations'} onClick={() => setActiveTab('reservations')} icon={<CalendarDays size={14} />}>
+              Reservas
             </TabButton>
             <TabButton active={activeTab === 'shopping'} onClick={() => setActiveTab('shopping')} icon={<Package size={14} />}>
               Compras
@@ -237,7 +241,7 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6">
+      <main className="flex-1 max-w-[1800px] w-full mx-auto p-6">
         {!syncStatus.isBackendConnected && (
           <div className="mb-6 bg-red-950/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-sm flex items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2">
@@ -266,10 +270,10 @@ export default function App() {
           >
             {activeTab === 'control' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="dashboard-tab-content">
-                <div className="lg:col-span-5">
+                <div className="lg:col-span-4">
                   <RegistrationForm onRegister={handleRegisterEntrance} isInternetOnline={syncStatus.isInternetOnline} />
                 </div>
-                <div className="lg:col-span-7">
+                <div className="lg:col-span-8">
                   <ActiveVisits
                     visits={visits}
                     shoppingDeliveries={shoppingDeliveries}
@@ -292,6 +296,10 @@ export default function App() {
 
             {activeTab === 'scheduled' && (
               <ScheduledServicesModule showToast={showToast} isInternetOnline={syncStatus.isInternetOnline} />
+            )}
+
+            {activeTab === 'reservations' && (
+              <ReservationsModule showToast={showToast} isInternetOnline={syncStatus.isInternetOnline} />
             )}
 
             {activeTab === 'shopping' && (
@@ -346,7 +354,7 @@ export default function App() {
       </AnimatePresence>
 
       <footer className="bg-[#05070a] border-t border-slate-900/60 py-6 text-center text-xs text-slate-500 mt-12 font-mono">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="max-w-[1800px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="uppercase text-[9px] text-slate-600 tracking-wider">2026 Condominio Chateauneuf. Servico de Portaria.</p>
           <div className="flex items-center gap-3 font-mono text-[9px] text-slate-600">
             <span>CLIENT-SPA: REACT 19 + TAILWIND 4</span>

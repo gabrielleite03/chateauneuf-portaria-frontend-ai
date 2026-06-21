@@ -71,6 +71,22 @@ export interface KeyRecord {
   syncStatus: 'synced' | 'pending' | 'failed';
 }
 
+export interface CommonAreaReservation {
+  id: string;
+  area: 'Churrasqueira' | 'Salão de festas';
+  residentName: string;
+  unit: string;
+  reservationDate: string;
+  startTime: string;
+  endTime: string;
+  guests?: string;
+  notes?: string;
+  status: 'reservada' | 'concluida' | 'cancelada';
+  syncStatus: 'synced' | 'pending' | 'failed';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ShoppingDelivery {
   id: string;
   unit: string;

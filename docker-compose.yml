@@ -12,10 +12,13 @@ services:
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost:8081}
       GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
       GOOGLE_SHEET_NAME: ${GOOGLE_SHEET_NAME:-Entradas}
+      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
       GOOGLE_CREDENTIALS_FILE: /run/secrets/google-service-account.json
+      PHOTO_STORAGE_DIR: /app/photos
       SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-30}
     volumes:
       - backend-data:/app/data
+      - ${LOCAL_PHOTO_DIR:-./photos}:/app/photos
       - ./secrets:/run/secrets:ro
     ports:
       - "${BACKEND_PORT:-18080}:8080"

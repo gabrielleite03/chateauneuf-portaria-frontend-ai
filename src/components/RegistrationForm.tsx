@@ -38,7 +38,11 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
   const startWebcam = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240, facingMode: 'user' }
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
       });
       setStream(mediaStream);
       setIsWebcamActive(true);
@@ -62,12 +66,14 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
   const capturePhoto = async () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = 240;
+      const width = videoRef.current.videoWidth || 1280;
+      const height = videoRef.current.videoHeight || 720;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0, 320, 240);
-        const dataUrl = await resizeImageDataUrl(canvas.toDataURL('image/jpeg', 0.7));
+        ctx.drawImage(videoRef.current, 0, 0, width, height);
+        const dataUrl = await resizeImageDataUrl(canvas.toDataURL('image/jpeg', 0.9));
         setPhoto(dataUrl);
         stopWebcam();
       }
@@ -140,10 +146,6 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
 
     if (!formData.document.trim()) {
       newErrors.document = 'O documento (RG / CPF) é obrigatório.';
-    }
-
-    if (!formData.company.trim()) {
-      newErrors.company = 'Informe a empresa ou tipo de serviço correspondente.';
     }
 
     if (!formData.unit.trim()) {
@@ -330,7 +332,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
             {/* Input Company / Service type */}
             <div>
               <label htmlFor="input-company" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
-                Empresa / Tipo de Serviço <span className="text-emerald-500">*</span>
+                Empresa / Tipo de Serviço <span className="text-slate-600 font-normal">(Opcional)</span>
               </label>
               <input
                 type="text"
@@ -584,8 +586,8 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
 
 async function resizeImageDataUrl(dataUrl: string): Promise<string> {
   const image = await loadImage(dataUrl);
-  const maxSides = [240, 200, 160, 120];
-  const qualities = [0.65, 0.55, 0.45, 0.35];
+  const maxSides = [1280, 1024, 800];
+  const qualities = [0.86, 0.78, 0.7];
   let lastCandidate = dataUrl;
 
   for (const maxSide of maxSides) {
@@ -604,7 +606,7 @@ async function resizeImageDataUrl(dataUrl: string): Promise<string> {
     for (const quality of qualities) {
       const resized = canvas.toDataURL('image/jpeg', quality);
       lastCandidate = resized;
-      if (resized.length <= 45000) {
+      if (resized.length <= 900000) {
         return resized;
       }
     }

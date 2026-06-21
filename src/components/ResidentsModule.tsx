@@ -77,7 +77,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const startFamilyWebcam = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240, facingMode: 'user' }
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
       });
       setFamilyStream(mediaStream);
       setIsFamilyWebcamActive(true);
@@ -98,12 +102,14 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const captureFamilyPhoto = () => {
     if (familyVideoRef.current) {
       const canvas = document.createElement('canvas');
-      canvas.width = 300;
-      canvas.height = 225;
+      const width = familyVideoRef.current.videoWidth || 1280;
+      const height = familyVideoRef.current.videoHeight || 720;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(familyVideoRef.current, 0, 0, 300, 225);
-        const dataUrl = canvas.toDataURL('image/jpeg');
+        ctx.drawImage(familyVideoRef.current, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         if (isEditingFamilyMember) {
           setEditingMemberPhoto(dataUrl);
         } else {
@@ -205,7 +211,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const startWebcam = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240, facingMode: 'user' }
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
       });
       setStream(mediaStream);
       setIsWebcamActive(true);
@@ -226,12 +236,14 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const capturePhoto = () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = 240;
+      const width = videoRef.current.videoWidth || 1280;
+      const height = videoRef.current.videoHeight || 720;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0, 320, 240);
-        const dataUrl = canvas.toDataURL('image/jpeg');
+        ctx.drawImage(videoRef.current, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         setPhoto(dataUrl);
         stopWebcam();
       }
@@ -252,7 +264,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const startTenantWebcam = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240, facingMode: 'user' }
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
       });
       setTenantStream(mediaStream);
       setIsTenantWebcamActive(true);
@@ -273,12 +289,14 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const captureTenantPhoto = () => {
     if (tenantVideoRef.current) {
       const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = 240;
+      const width = tenantVideoRef.current.videoWidth || 1280;
+      const height = tenantVideoRef.current.videoHeight || 720;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(tenantVideoRef.current, 0, 0, 320, 240);
-        setTenantPhoto(canvas.toDataURL('image/jpeg'));
+        ctx.drawImage(tenantVideoRef.current, 0, 0, width, height);
+        setTenantPhoto(canvas.toDataURL('image/jpeg', 0.92));
         stopTenantWebcam();
       }
     }
@@ -1211,7 +1229,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
           onClick={() => setSelectedPhoto(null)}
         >
           <div 
-            className="relative max-w-sm w-full bg-slate-900 border border-slate-800 p-4 rounded-sm shadow-2xl font-mono text-xs"
+            className="relative max-w-5xl w-full bg-slate-900 border border-slate-800 p-4 rounded-sm shadow-2xl font-mono text-xs"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close trigger button */}
@@ -1228,7 +1246,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
               src={selectedPhoto.url} 
               alt={selectedPhoto.name}
               referrerPolicy="no-referrer"
-              className="w-full aspect-[4/3] object-cover border border-slate-800 bg-slate-950 rounded-sm"
+              className="w-full max-h-[78vh] object-contain border border-slate-800 bg-slate-950 rounded-sm"
             />
             <div className="mt-3 text-slate-200">
               <span className="text-slate-500 font-bold uppercase text-[10px]">MORADOR(A):</span> 

@@ -69,7 +69,11 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
   const startWebcam = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240, facingMode: 'environment' },
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'environment',
+        },
       });
       setStream(mediaStream);
       setIsWebcamActive(true);
@@ -94,13 +98,15 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
     if (!videoRef.current) return;
 
     const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 240;
+    const width = videoRef.current.videoWidth || 1280;
+    const height = videoRef.current.videoHeight || 720;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.drawImage(videoRef.current, 0, 0, 320, 240);
-    setPhoto(await resizeImageDataUrl(canvas.toDataURL('image/jpeg', 0.7)));
+    ctx.drawImage(videoRef.current, 0, 0, width, height);
+    setPhoto(await resizeImageDataUrl(canvas.toDataURL('image/jpeg', 0.9)));
     stopWebcam();
   };
 
@@ -122,13 +128,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
     if (!formData.unit.trim()) newErrors.unit = 'Informe o apartamento da entrega.';
-    if (!formData.courierName.trim()) newErrors.courierName = 'Informe o nome do entregador.';
-    if (!formData.document.trim()) newErrors.document = 'Informe um documento, codigo ou identificacao do entregador.';
-    if (!formData.store.trim()) newErrors.store = 'Informe a loja, transportadora ou origem.';
-    if (!formData.product.trim()) newErrors.product = 'Descreva a mercadoria recebida.';
-    if (!photo) newErrors.photo = 'Registre uma foto da mercadoria.';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -155,10 +155,11 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
 
       if (result) {
         setRegisteredItem(result);
+        const target = result.unit || 'portaria';
         setSuccessMessage(
           isInternetOnline
-            ? `Compra do ${result.unit} registrada e sincronizada.`
-            : `Compra do ${result.unit} gravada localmente e pendente de sincronizacao.`,
+            ? `Compra da ${target} registrada e sincronizada.`
+            : `Compra da ${target} gravada localmente e pendente de sincronizacao.`,
         );
         setFormData({ unit: '', courierName: '', document: '', store: '', product: '', notes: '' });
         setPhoto(null);
@@ -239,7 +240,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
 
             <div>
               <label htmlFor="input-shopping-courier" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
-                Nome do Entregador <span className="text-emerald-500">*</span>
+                Nome do Entregador <span className="text-slate-600 font-normal">(Opcional)</span>
               </label>
               <div className="relative">
                 <UserRound size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
@@ -259,7 +260,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="input-shopping-document" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
-                Documento / Codigo <span className="text-emerald-500">*</span>
+                Documento / Codigo <span className="text-slate-600 font-normal">(Opcional)</span>
               </label>
               <input
                 id="input-shopping-document"
@@ -274,7 +275,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
 
             <div>
               <label htmlFor="input-shopping-store" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
-                Loja / Transportadora <span className="text-emerald-500">*</span>
+                Loja / Transportadora <span className="text-slate-600 font-normal">(Opcional)</span>
               </label>
               <input
                 id="input-shopping-store"
@@ -297,7 +298,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
 
           <div>
             <label htmlFor="input-shopping-product" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
-              Mercadoria <span className="text-emerald-500">*</span>
+              Mercadoria <span className="text-slate-600 font-normal">(Opcional)</span>
             </label>
             <div className="relative">
               <ReceiptText size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
@@ -315,7 +316,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
 
           <div className="border border-slate-800/40 rounded p-4 bg-slate-950/20 space-y-3">
             <label className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-              Foto do Produto <span className="text-emerald-500">*</span>
+              Foto do Produto <span className="text-slate-600 font-normal">(Opcional)</span>
             </label>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className={`relative w-44 h-32 bg-slate-950 border flex items-center justify-center overflow-hidden rounded-sm shrink-0 ${errors.photo ? 'border-red-900' : 'border-slate-800'}`}>
@@ -402,8 +403,8 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
 
 async function resizeImageDataUrl(dataUrl: string): Promise<string> {
   const image = await loadImage(dataUrl);
-  const maxSides = [240, 200, 160, 120];
-  const qualities = [0.65, 0.55, 0.45, 0.35];
+  const maxSides = [1280, 1024, 800];
+  const qualities = [0.86, 0.78, 0.7];
   let lastCandidate = dataUrl;
 
   for (const maxSide of maxSides) {
@@ -422,7 +423,7 @@ async function resizeImageDataUrl(dataUrl: string): Promise<string> {
     for (const quality of qualities) {
       const resized = canvas.toDataURL('image/jpeg', quality);
       lastCandidate = resized;
-      if (resized.length <= 45000) {
+      if (resized.length <= 900000) {
         return resized;
       }
     }

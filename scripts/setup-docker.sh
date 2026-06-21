@@ -8,6 +8,8 @@ BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:latest"
 FRONTEND_PORT="8081"
 BACKEND_PORT="18080"
 GOOGLE_SHEET_NAME="Entradas"
+GOOGLE_DRIVE_FOLDER_ID=""
+LOCAL_PHOTO_DIR="./photos"
 SYNC_INTERVAL_SECONDS="30"
 BUILD="false"
 PULL="false"
@@ -28,6 +30,8 @@ Options:
   --frontend-port PORT
   --backend-port PORT
   --google-sheet-name NAME
+  --google-drive-folder-id ID
+  --local-photo-dir PATH
   --sync-interval-seconds SECONDS
   --pull
   --build
@@ -63,6 +67,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --google-sheet-name)
       GOOGLE_SHEET_NAME="${2:-}"
+      shift 2
+      ;;
+    --google-drive-folder-id)
+      GOOGLE_DRIVE_FOLDER_ID="${2:-}"
+      shift 2
+      ;;
+    --local-photo-dir)
+      LOCAL_PHOTO_DIR="${2:-}"
       shift 2
       ;;
     --sync-interval-seconds)
@@ -124,7 +136,9 @@ FRONTEND_PORT=$FRONTEND_PORT
 BACKEND_PORT=$BACKEND_PORT
 GOOGLE_SHEET_ID=$GOOGLE_SHEET_ID
 GOOGLE_SHEET_NAME=$GOOGLE_SHEET_NAME
+GOOGLE_DRIVE_FOLDER_ID=$GOOGLE_DRIVE_FOLDER_ID
 SYNC_INTERVAL_SECONDS=$SYNC_INTERVAL_SECONDS
+LOCAL_PHOTO_DIR=$LOCAL_PHOTO_DIR
 ALLOWED_ORIGIN=http://localhost:$FRONTEND_PORT
 EOF
 

@@ -1,4 +1,4 @@
-import { KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
+import { CommonAreaReservation, KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
 
 type BackendSyncStatus = {
   online: boolean;
@@ -23,6 +23,7 @@ type BackendAccessLog = {
 
 type CreateVisitInput = Omit<Visit, 'id' | 'entryTime' | 'syncStatus'>;
 type CreateShoppingInput = Omit<ShoppingDelivery, 'id' | 'receivedAt' | 'withdrawnAt' | 'status' | 'syncStatus'>;
+type CreateReservationInput = Omit<CommonAreaReservation, 'id' | 'status' | 'syncStatus' | 'createdAt' | 'updatedAt'>;
 
 const syncStatusMap: Record<BackendAccessLog['sync_status'], Visit['syncStatus']> = {
   PENDENTE_SYNC: 'pending',
@@ -140,6 +141,31 @@ export async function createShoppingDelivery(input: CreateShoppingInput): Promis
 
 export async function withdrawShoppingDelivery(id: string): Promise<ShoppingDelivery> {
   return request<ShoppingDelivery>('/api/shopping/withdraw', {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+  });
+}
+
+export async function fetchReservations(): Promise<CommonAreaReservation[]> {
+  return request<CommonAreaReservation[]>('/api/reservations');
+}
+
+export async function createReservation(input: CreateReservationInput): Promise<CommonAreaReservation> {
+  return request<CommonAreaReservation>('/api/reservations', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateReservationStatus(id: string, status: CommonAreaReservation['status']): Promise<CommonAreaReservation> {
+  return request<CommonAreaReservation>('/api/reservations/status', {
+    method: 'POST',
+    body: JSON.stringify({ id, status }),
+  });
+}
+
+export async function deleteReservation(id: string): Promise<void> {
+  await request<{ status: string }>('/api/reservations/delete', {
     method: 'POST',
     body: JSON.stringify({ id }),
   });
