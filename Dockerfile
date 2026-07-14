@@ -6,6 +6,10 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+ARG APP_VERSION=dev
+ARG GIT_COMMIT=unknown
+ENV VITE_APP_VERSION=$APP_VERSION
+ENV VITE_GIT_COMMIT=$GIT_COMMIT
 RUN npm run build
 
 FROM nginx:1.27-alpine

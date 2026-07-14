@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Building2, CalendarDays, CheckCircle2, History, Key, LayoutDashboard, Package, Settings, Sparkles, WifiOff, Wrench } from 'lucide-react';
 
-import { checkoutVisit, createShoppingDelivery, createVisit, fetchKeyRecords, fetchShoppingDeliveries, fetchSyncStatus, fetchVisits, runSync, withdrawShoppingDelivery } from './api';
-import { KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
+import { checkoutVisit, createShoppingDelivery, createVisit, fetchBackendVersion, fetchKeyRecords, fetchShoppingDeliveries, fetchSyncStatus, fetchVisits, runSync, withdrawShoppingDelivery } from './api';
+import { AppVersion, KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
+import { frontendVersion } from './version';
 import ActiveVisits from './components/ActiveVisits';
 import Header from './components/Header';
 import HistoryVisits from './components/HistoryVisits';
@@ -39,6 +40,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('control');
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'warning' | 'error' } | null>(null);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => getTimeTheme());
+  const [backendVersion, setBackendVersion] = useState<AppVersion | null>(null);
 
   const showToast = (message: string, type: 'success' | 'warning' | 'error' = 'success') => {
     setNotification({ message, type });
@@ -47,23 +49,26 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      const [statusData, visitsData, shoppingData, keyData] = await Promise.all([
+      const [statusData, visitsData, shoppingData, keyData, versionData] = await Promise.all([
         fetchSyncStatus(),
         fetchVisits(),
         fetchShoppingDeliveries(),
         fetchKeyRecords(),
+        fetchBackendVersion(),
       ]);
 
       setSyncStatus(statusData);
       setVisits(visitsData);
       setShoppingDeliveries(shoppingData);
       setKeyRecords(keyData);
+      setBackendVersion(versionData);
     } catch (err) {
       console.error('Backend Go indisponivel.', err);
       setSyncStatus(prev => ({
         ...prev,
         isBackendConnected: false,
       }));
+      setBackendVersion(null);
       showToast('Sem resposta do backend Go local. Verifique se ele esta rodando em http://localhost:8080.', 'error');
     }
   };
@@ -200,6 +205,8 @@ export default function App() {
         onSync={handleManualSync}
         onToggleInternet={handleToggleInternetSimulation}
         isSyncing={isSyncing}
+        frontendVersion={frontendVersion}
+        backendVersion={backendVersion}
       />
 
       <nav className="bg-[#07090f] border-b border-slate-900/80">
@@ -357,9 +364,9 @@ export default function App() {
         <div className="max-w-[1800px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="uppercase text-[9px] text-slate-600 tracking-wider">2026 Condominio Chateauneuf. Servico de Portaria.</p>
           <div className="flex items-center gap-3 font-mono text-[9px] text-slate-600">
-            <span>CLIENT-SPA: REACT 19 + TAILWIND 4</span>
+            <span>FRONTEND: {frontendVersion.version} / {frontendVersion.commit}</span>
             <span className="text-slate-900">|</span>
-            <span>DATA ENGINE: GO BACKEND + SQLITE</span>
+            <span>BACKEND: {backendVersion ? `${backendVersion.version} / ${backendVersion.commit}` : 'OFFLINE'}</span>
           </div>
         </div>
       </footer>

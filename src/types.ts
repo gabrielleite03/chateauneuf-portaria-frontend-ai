@@ -114,3 +114,9 @@ export interface SyncStatus {
     message: string;
   }>;
 }
+
+export interface AppVersion {
+  service: 'frontend' | 'backend';
+  version: string;
+  commit: string;
+}

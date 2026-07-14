@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, RefreshCw, ShieldCheck } from 'lucide-react';
-import { SyncStatus } from '../types';
+import { Clock, GitCommitHorizontal, RefreshCw, ShieldCheck } from 'lucide-react';
+import { AppVersion, SyncStatus } from '../types';
 
 interface HeaderProps {
   status: SyncStatus;
   onSync: () => Promise<void>;
   onToggleInternet?: () => Promise<void>;
   isSyncing: boolean;
+  frontendVersion: AppVersion;
+  backendVersion: AppVersion | null;
 }
 
-export default function Header({ status, onSync, isSyncing }: HeaderProps) {
+export default function Header({ status, onSync, isSyncing, frontendVersion, backendVersion }: HeaderProps) {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -63,6 +65,9 @@ export default function Header({ status, onSync, isSyncing }: HeaderProps) {
             warn={!status.isInternetOnline}
           />
 
+          <VersionPill version={frontendVersion} />
+          <VersionPill version={backendVersion} fallback="Backend: indisponivel" />
+
           <button
             id="btn-sync-now"
             onClick={onSync}
@@ -82,6 +87,19 @@ export default function Header({ status, onSync, isSyncing }: HeaderProps) {
         </div>
       </div>
     </header>
+  );
+}
+
+function VersionPill({ version, fallback }: { version: AppVersion | null; fallback?: string }) {
+  const label = version
+    ? `${version.service === 'frontend' ? 'Frontend' : 'Backend'} ${version.version} | ${version.commit}`
+    : fallback || 'Versao indisponivel';
+
+  return (
+    <div className="flex items-center gap-2 px-3.5 py-2 rounded-sm border bg-[#05070a] border-slate-800/60 text-slate-300">
+      <GitCommitHorizontal size={13} className={version ? 'text-emerald-400' : 'text-slate-600'} />
+      <span className="font-mono text-[10px] uppercase tracking-wider">{label}</span>
+    </div>
   );
 }
 

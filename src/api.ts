@@ -1,4 +1,4 @@
-import { CommonAreaReservation, KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
+import { AppVersion, CommonAreaReservation, KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
 
 type BackendSyncStatus = {
   online: boolean;
@@ -86,6 +86,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export async function fetchSyncStatus(): Promise<SyncStatus> {
   return toSyncStatus(await request<BackendSyncStatus>('/api/sync/status'));
+}
+
+export async function fetchBackendVersion(): Promise<AppVersion> {
+  return request<AppVersion>('/api/version');
 }
 
 export async function fetchVisits(): Promise<Visit[]> {
