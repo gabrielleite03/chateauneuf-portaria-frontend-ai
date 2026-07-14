@@ -5,8 +5,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$GoogleSheetId,
 
-  [string]$FrontendImage = "gabrielleite03/chateauneuf-portaria-frontend:latest",
-  [string]$BackendImage = "gabrielleite03/chateauneuf-portaria-backend:latest",
+  [string]$FrontendImage = "gabrielleite03/chateauneuf-portaria-frontend:2026.07.14.1",
+  [string]$BackendImage = "gabrielleite03/chateauneuf-portaria-backend:2026.07.14.1",
   [string]$FrontendPort = "8081",
   [string]$BackendPort = "18080",
   [string]$GoogleSheetName = "Entradas",
@@ -78,7 +78,7 @@ if ($Build -or $Pull -or $Up) {
       }
     } elseif ($Up) {
       Invoke-Docker @("compose", "--env-file", ".env.docker", "pull")
-      Invoke-Docker @("compose", "--env-file", ".env.docker", "up", "-d", "--no-build")
+      Invoke-Docker @("compose", "--env-file", ".env.docker", "up", "-d", "--no-build", "--force-recreate")
     } elseif ($Pull) {
       Invoke-Docker @("compose", "--env-file", ".env.docker", "pull")
       Write-Host "Images pulled. Run 'docker compose --env-file .env.docker up -d --no-build' to start."

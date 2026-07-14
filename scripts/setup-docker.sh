@@ -3,8 +3,8 @@ set -eu
 
 GOOGLE_CREDENTIALS_FILE=""
 GOOGLE_SHEET_ID=""
-FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:latest"
-BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:latest"
+FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.07.14.1"
+BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:2026.07.14.1"
 FRONTEND_PORT="8081"
 BACKEND_PORT="18080"
 GOOGLE_SHEET_NAME="Entradas"
@@ -153,7 +153,7 @@ if [ "$BUILD" = "true" ]; then
 elif [ "$UP" = "true" ]; then
   cd "$PROJECT_ROOT"
   docker compose --env-file .env.docker pull
-  docker compose --env-file .env.docker up -d --no-build
+  docker compose --env-file .env.docker up -d --no-build --force-recreate
 elif [ "$PULL" = "true" ]; then
   cd "$PROJECT_ROOT"
   docker compose --env-file .env.docker pull
