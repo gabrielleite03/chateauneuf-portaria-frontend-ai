@@ -8,6 +8,24 @@
   color-scheme: light;
 }
 
+:root:not([data-theme='light']) label.text-slate-500,
+:root:not([data-theme='light']) label.text-slate-400,
+:root:not([data-theme='light']) label .text-slate-500,
+:root:not([data-theme='light']) label .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+:root:not([data-theme='light']) form p.text-slate-600,
+:root:not([data-theme='light']) form span.text-slate-600,
+:root:not([data-theme='light']) form .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+:root:not([data-theme='light']) input::placeholder,
+:root:not([data-theme='light']) textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
 body {
   background: #030508;
 }

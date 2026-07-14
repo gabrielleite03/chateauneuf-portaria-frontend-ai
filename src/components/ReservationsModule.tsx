@@ -9,6 +9,25 @@ interface ReservationsModuleProps {
 }
 
 const COMMON_AREAS: CommonAreaReservation['area'][] = ['Churrasqueira', 'Salão de festas'];
+const CANCELLATION_LIMIT_DAYS = 2;
+
+function startOfLocalDay(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function parseReservationDate(value: string) {
+  return startOfLocalDay(new Date(`${value}T00:00:00`));
+}
+
+function daysUntilReservation(value: string) {
+  const today = startOfLocalDay(new Date());
+  const reservationDay = parseReservationDate(value);
+  return Math.ceil((reservationDay.getTime() - today.getTime()) / 86_400_000);
+}
+
+function canCancelReservation(reservation: CommonAreaReservation) {
+  return daysUntilReservation(reservation.reservationDate) >= CANCELLATION_LIMIT_DAYS;
+}
 
 export default function ReservationsModule({ showToast, isInternetOnline }: ReservationsModuleProps) {
   const [reservations, setReservations] = useState<CommonAreaReservation[]>([]);
@@ -61,6 +80,14 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     });
   }, [areaFilter, reservations, searchTerm, statusFilter]);
 
+  const activeReservationOnSelectedDate = useMemo(() => {
+    if (!formData.reservationDate) return undefined;
+    return reservations.find(reservation =>
+      reservation.status === 'reservada' &&
+      reservation.reservationDate === formData.reservationDate
+    );
+  }, [formData.reservationDate, reservations]);
+
   const validate = () => {
     const nextErrors: Record<string, string> = {};
     if (!formData.area) nextErrors.area = 'Selecione a area comum.';
@@ -71,6 +98,9 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     if (!formData.endTime) nextErrors.endTime = 'Informe o horario final.';
     if (formData.startTime && formData.endTime && formData.startTime >= formData.endTime) {
       nextErrors.endTime = 'Horario final deve ser maior que o inicial.';
+    }
+    if (activeReservationOnSelectedDate) {
+      nextErrors.reservationDate = `Ja existe reserva ativa para ${activeReservationOnSelectedDate.area} nesta data.`;
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -111,11 +141,16 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     }
   };
 
-  const handleStatus = async (id: string, status: CommonAreaReservation['status']) => {
+  const handleStatus = async (reservation: CommonAreaReservation, status: CommonAreaReservation['status']) => {
+    if (status === 'cancelada' && !canCancelReservation(reservation)) {
+      showToast('A reserva so pode ser cancelada ate 2 dias antes da data do evento.', 'warning');
+      return;
+    }
+
     try {
-      const updated = await updateReservationStatus(id, status);
-      setReservations(prev => prev.map(item => item.id === id ? updated : item));
-      showToast('Status da reserva atualizado.', 'success');
+      const updated = await updateReservationStatus(reservation.id, status);
+      setReservations(prev => prev.map(item => item.id === reservation.id ? updated : item));
+      showToast(status === 'cancelada' ? 'Reserva cancelada.' : 'Status da reserva atualizado.', 'success');
     } catch (err) {
       console.error(err);
       showToast('Nao foi possivel atualizar a reserva.', 'error');
@@ -199,6 +234,11 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
                 onChange={(e) => setFormData(prev => ({ ...prev, reservationDate: e.target.value }))}
                 className={`w-full bg-slate-950 border ${errors.reservationDate ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-sm px-3 py-2.5 text-sm outline-none focus:border-emerald-500/60`}
               />
+              {!errors.reservationDate && activeReservationOnSelectedDate && (
+                <p className="text-[9px] text-amber-400 font-mono uppercase mt-1">
+                  Data ocupada por {activeReservationOnSelectedDate.area} do Apto {activeReservationOnSelectedDate.unit}.
+                </p>
+              )}
             </FieldError>
 
             <div className="grid grid-cols-2 gap-3">
@@ -315,16 +355,19 @@ function FieldError({ children, error, className = '' }: { children: React.React
   );
 }
 
-function ReservationCard({ reservation, onStatus, onDelete }: {
+interface ReservationCardProps {
   reservation: CommonAreaReservation;
-  onStatus: (id: string, status: CommonAreaReservation['status']) => Promise<void>;
+  onStatus: (reservation: CommonAreaReservation, status: CommonAreaReservation['status']) => Promise<void>;
   onDelete: (reservation: CommonAreaReservation) => Promise<void>;
-}) {
+}
+
+const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onStatus, onDelete }) => {
   const statusClasses = {
     reservada: 'bg-emerald-950/35 text-emerald-400 border-emerald-500/25',
     concluida: 'bg-slate-950 text-slate-400 border-slate-700',
     cancelada: 'bg-red-950/35 text-red-400 border-red-500/25',
   };
+  const canCancel = canCancelReservation(reservation);
 
   return (
     <div className="bg-[#0a0d14] border border-slate-800/60 rounded-sm p-5 font-mono">
@@ -371,14 +414,22 @@ function ReservationCard({ reservation, onStatus, onDelete }: {
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-900/70 pt-3">
         <span className={`text-[9px] uppercase font-bold ${reservation.syncStatus === 'pending' ? 'text-amber-400' : 'text-emerald-400'}`}>
           {reservation.syncStatus === 'pending' ? 'Pendente local' : 'Sincronizada'}
+          {reservation.status === 'reservada' && !canCancel && (
+            <span className="block text-red-400 mt-1">Cancelamento fora do prazo</span>
+          )}
         </span>
         <div className="flex gap-2">
           {reservation.status === 'reservada' && (
             <>
-              <button onClick={() => onStatus(reservation.id, 'concluida')} className="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/25 text-emerald-400 rounded-sm text-[9px] uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1">
+              <button onClick={() => onStatus(reservation, 'concluida')} className="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/25 text-emerald-400 rounded-sm text-[9px] uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1">
                 <Check size={11} /> Concluir
               </button>
-              <button onClick={() => onStatus(reservation.id, 'cancelada')} className="px-3 py-1.5 bg-red-950/35 hover:bg-red-950 border border-red-500/25 text-red-400 rounded-sm text-[9px] uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1">
+              <button
+                onClick={() => onStatus(reservation, 'cancelada')}
+                disabled={!canCancel}
+                title={canCancel ? 'Cancelar reserva' : 'Cancelamento permitido somente ate 2 dias antes do evento'}
+                className="px-3 py-1.5 bg-red-950/35 hover:bg-red-950 disabled:bg-slate-950 disabled:text-slate-600 disabled:border-slate-800 border border-red-500/25 text-red-400 rounded-sm text-[9px] uppercase font-bold tracking-wider cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
+              >
                 <Ban size={11} /> Cancelar
               </button>
             </>
@@ -390,7 +441,7 @@ function ReservationCard({ reservation, onStatus, onDelete }: {
       </div>
     </div>
   );
-}
+};
 
 function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('pt-BR');
