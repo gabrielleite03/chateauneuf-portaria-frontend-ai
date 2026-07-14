@@ -157,6 +157,8 @@ Push-Location $InstallDir
 try {
   if ($sourceHasPackage) {
     Expand-Archive ".\$packageName" -DestinationPath . -Force
+    Copy-DistributionFile -FileName "docker-compose.yml"
+    Copy-DistributionFile -FileName ".env.docker.example"
   }
 
   $setupScript = Join-Path $InstallDir "scripts\setup-docker.ps1"
@@ -180,6 +182,8 @@ try {
     "-FrontendPort", $FrontendPort,
     "-BackendPort", $BackendPort,
     "-GoogleSheetName", $GoogleSheetName,
+    "-LocalDataDir", ".\data",
+    "-LocalPhotoDir", ".\photos",
     "-SyncIntervalSeconds", $SyncIntervalSeconds
   )
 

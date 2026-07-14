@@ -237,6 +237,8 @@ if [ -f "$SOURCE_PACKAGE_PATH" ]; then
   ensure_unzip
   copy_distribution_file "$PACKAGE_NAME"
   (cd "$INSTALL_DIR" && unzip -o "$PACKAGE_NAME")
+  copy_distribution_file "docker-compose.yml"
+  copy_distribution_file ".env.docker.example"
 elif [ "$SOURCE_IS_EXTRACTED" = "true" ]; then
   cp -R "$SOURCE_DIR/scripts" "$INSTALL_DIR/"
   cp -R "$SOURCE_DIR/secrets" "$INSTALL_DIR/"
@@ -268,6 +270,8 @@ if [ "$NO_START" = "true" ]; then
     --frontend-port "$FRONTEND_PORT" \
     --backend-port "$BACKEND_PORT" \
     --google-sheet-name "$GOOGLE_SHEET_NAME" \
+    --local-data-dir "./data" \
+    --local-photo-dir "./photos" \
     --sync-interval-seconds "$SYNC_INTERVAL_SECONDS"
 else
   "$SETUP_SCRIPT" \
@@ -278,6 +282,8 @@ else
     --frontend-port "$FRONTEND_PORT" \
     --backend-port "$BACKEND_PORT" \
     --google-sheet-name "$GOOGLE_SHEET_NAME" \
+    --local-data-dir "./data" \
+    --local-photo-dir "./photos" \
     --sync-interval-seconds "$SYNC_INTERVAL_SECONDS" \
     --up
 fi
