@@ -9,6 +9,7 @@ FRONTEND_PORT="8081"
 BACKEND_PORT="18080"
 GOOGLE_SHEET_NAME="Entradas"
 GOOGLE_DRIVE_FOLDER_ID=""
+LOCAL_DATA_DIR="./data"
 LOCAL_PHOTO_DIR="./photos"
 SYNC_INTERVAL_SECONDS="30"
 BUILD="false"
@@ -32,6 +33,7 @@ Options:
   --google-sheet-name NAME
   --google-drive-folder-id ID
   --local-photo-dir PATH
+  --local-data-dir PATH
   --sync-interval-seconds SECONDS
   --pull
   --build
@@ -75,6 +77,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --local-photo-dir)
       LOCAL_PHOTO_DIR="${2:-}"
+      shift 2
+      ;;
+    --local-data-dir)
+      LOCAL_DATA_DIR="${2:-}"
       shift 2
       ;;
     --sync-interval-seconds)
@@ -138,6 +144,7 @@ GOOGLE_SHEET_ID=$GOOGLE_SHEET_ID
 GOOGLE_SHEET_NAME=$GOOGLE_SHEET_NAME
 GOOGLE_DRIVE_FOLDER_ID=$GOOGLE_DRIVE_FOLDER_ID
 SYNC_INTERVAL_SECONDS=$SYNC_INTERVAL_SECONDS
+LOCAL_DATA_DIR=$LOCAL_DATA_DIR
 LOCAL_PHOTO_DIR=$LOCAL_PHOTO_DIR
 ALLOWED_ORIGIN=http://localhost:$FRONTEND_PORT
 EOF

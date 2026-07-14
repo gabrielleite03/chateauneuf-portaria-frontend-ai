@@ -11,6 +11,7 @@ param(
   [string]$BackendPort = "18080",
   [string]$GoogleSheetName = "Entradas",
   [string]$GoogleDriveFolderId = "",
+  [string]$LocalDataDir = ".\data",
   [string]$LocalPhotoDir = ".\photos",
   [string]$SyncIntervalSeconds = "30",
   [switch]$Pull,
@@ -58,6 +59,7 @@ GOOGLE_SHEET_ID=$GoogleSheetId
 GOOGLE_SHEET_NAME=$GoogleSheetName
 GOOGLE_DRIVE_FOLDER_ID=$GoogleDriveFolderId
 SYNC_INTERVAL_SECONDS=$SyncIntervalSeconds
+LOCAL_DATA_DIR=$LocalDataDir
 LOCAL_PHOTO_DIR=$LocalPhotoDir
 ALLOWED_ORIGIN=http://localhost:$FrontendPort
 "@ | Set-Content -LiteralPath $envFile -Encoding UTF8
