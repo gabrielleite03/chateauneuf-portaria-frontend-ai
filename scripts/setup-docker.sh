@@ -4,7 +4,7 @@ set -eu
 GOOGLE_CREDENTIALS_FILE=""
 GOOGLE_SHEET_ID=""
 FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.07.14.1"
-BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:2026.07.14.2"
+BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:2026.07.14.3"
 FRONTEND_PORT="8081"
 BACKEND_PORT="18080"
 GOOGLE_SHEET_NAME="Entradas"
