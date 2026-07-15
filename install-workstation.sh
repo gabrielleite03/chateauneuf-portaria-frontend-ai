@@ -126,6 +126,24 @@ run_sudo() {
   fi
 }
 
+docker_info() {
+  if docker info >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && sudo docker info >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+docker_cmd() {
+  if docker info >/dev/null 2>&1; then
+    docker "$@"
+  else
+    run_sudo docker "$@"
+  fi
+}
+
 install_docker_desktop_or_engine() {
   if [ "$SKIP_DOCKER_INSTALL" = "true" ]; then
     echo "Docker nao encontrado. Instale Docker manualmente ou execute sem --skip-docker-install." >&2
@@ -205,7 +223,7 @@ ensure_docker_ready() {
     install_docker_desktop_or_engine
   fi
 
-  if docker info >/dev/null 2>&1; then
+  if docker_info; then
     return
   fi
 
@@ -220,8 +238,11 @@ ensure_docker_ready() {
   echo "Aguardando Docker ficar pronto..."
   attempts=0
   while [ "$attempts" -lt 36 ]; do
-    if docker info >/dev/null 2>&1; then
+    if docker_info; then
       echo "Docker pronto."
+      if ! docker info >/dev/null 2>&1; then
+        echo "Aviso: usando Docker com sudo nesta execucao. Para usar sem sudo futuramente, encerre a sessao e entre novamente."
+      fi
       return
     fi
     attempts=$((attempts + 1))
@@ -229,7 +250,8 @@ ensure_docker_ready() {
   done
 
   echo "Docker foi instalado/encontrado, mas o usuario atual ainda nao consegue usa-lo." >&2
-  echo "Se voce acabou de instalar, encerre a sessao e entre novamente, ou execute: newgrp docker" >&2
+  echo "Tente: sudo systemctl status docker" >&2
+  echo "Se voce acabou de instalar, encerre a sessao e entre novamente para ativar o grupo docker." >&2
   exit 1
 }
 
@@ -338,13 +360,29 @@ fi
 
 echo ""
 echo "Verificar containers:"
-echo "  cd $INSTALL_DIR && docker compose --env-file .env.docker ps"
+if docker info >/dev/null 2>&1; then
+  echo "  cd $INSTALL_DIR && docker compose --env-file .env.docker ps"
+else
+  echo "  cd $INSTALL_DIR && sudo docker compose --env-file .env.docker ps"
+fi
 echo ""
 echo "Ver logs:"
-echo "  cd $INSTALL_DIR && docker compose --env-file .env.docker logs -f"
+if docker info >/dev/null 2>&1; then
+  echo "  cd $INSTALL_DIR && docker compose --env-file .env.docker logs -f"
+else
+  echo "  cd $INSTALL_DIR && sudo docker compose --env-file .env.docker logs -f"
+fi
 echo ""
 echo "Parar:"
-echo "  cd $INSTALL_DIR && docker compose --env-file .env.docker down"
+if docker info >/dev/null 2>&1; then
+  echo "  cd $INSTALL_DIR && docker compose --env-file .env.docker down"
+else
+  echo "  cd $INSTALL_DIR && sudo docker compose --env-file .env.docker down"
+fi
 echo ""
 echo "Subir novamente:"
-echo "  cd $INSTALL_DIR && docker compose --env-file .env.docker up -d"
+if docker info >/dev/null 2>&1; then
+  echo "  cd $INSTALL_DIR && docker compose --env-file .env.docker up -d"
+else
+  echo "  cd $INSTALL_DIR && sudo docker compose --env-file .env.docker up -d"
+fi

@@ -144,6 +144,14 @@ run_sudo() {
   fi
 }
 
+docker_cmd() {
+  if docker info >/dev/null 2>&1; then
+    docker "$@"
+  else
+    run_sudo docker "$@"
+  fi
+}
+
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PROJECT_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 SECRETS_DIR="$PROJECT_ROOT/secrets"
@@ -244,13 +252,13 @@ echo "Frontend HTTPS URL: https://localhost:$FRONTEND_HTTPS_PORT"
 
 if [ "$BUILD" = "true" ]; then
   cd "$PROJECT_ROOT"
-  docker compose --env-file .env.docker up --build -d
+  docker_cmd compose --env-file .env.docker up --build -d
 elif [ "$UP" = "true" ]; then
   cd "$PROJECT_ROOT"
-  docker compose --env-file .env.docker pull
-  docker compose --env-file .env.docker up -d --no-build --force-recreate
+  docker_cmd compose --env-file .env.docker pull
+  docker_cmd compose --env-file .env.docker up -d --no-build --force-recreate
 elif [ "$PULL" = "true" ]; then
   cd "$PROJECT_ROOT"
-  docker compose --env-file .env.docker pull
+  docker_cmd compose --env-file .env.docker pull
   echo "Images pulled. Run 'docker compose --env-file .env.docker up -d --no-build' to start."
 fi
