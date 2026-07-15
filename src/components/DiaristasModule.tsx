@@ -25,6 +25,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { DiaristaEntry } from '../types';
+import { cameraAccessErrorMessage } from '../utils/camera';
 
 interface DiaristasModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
@@ -66,7 +67,7 @@ export default function DiaristasModule({ showToast, isInternetOnline }: Diarist
       setIsWebcamActive(true);
     } catch (err) {
       console.error("Error accessing webcam", err);
-      showToast("Não foi possível acessar a webcam. Verifique se o dispositivo possui câmera ativa e permissão concedida.", "error");
+      showToast(cameraAccessErrorMessage(err), "error");
     }
   };
 

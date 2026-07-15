@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserPlus, BookOpen, AlertCircle, CheckCircle2, ShieldCheck, Landmark, Tag, Car, FileText, Camera, Upload, Trash2 } from 'lucide-react';
 import { Visit } from '../types';
+import { cameraAccessErrorMessage } from '../utils/camera';
 
 interface RegistrationFormProps {
   onRegister: (data: Omit<Visit, 'id' | 'entryTime' | 'syncStatus'>) => Promise<Visit | null>;
@@ -50,7 +51,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
       console.error("Error accessing webcam", err);
       setErrors(prev => ({
         ...prev,
-        form: "Não foi possível acessar a webcam. Verifique se o dispositivo possui câmera ativa e se as permissões foram concedidas."
+        form: cameraAccessErrorMessage(err)
       }));
     }
   };

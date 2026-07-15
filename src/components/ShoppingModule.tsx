@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, CheckCircle2, Landmark, PackagePlus, ReceiptText, Trash2, Upload, UserRound } from 'lucide-react';
 import { ShoppingDelivery } from '../types';
+import { cameraAccessErrorMessage } from '../utils/camera';
 
 interface ShoppingModuleProps {
   onRegister: (data: Omit<ShoppingDelivery, 'id' | 'receivedAt' | 'withdrawnAt' | 'status' | 'syncStatus'>) => Promise<ShoppingDelivery | null>;
@@ -81,7 +82,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
       console.error('Error accessing webcam', err);
       setErrors(prev => ({
         ...prev,
-        form: 'Nao foi possivel acessar a camera. Verifique a permissao do navegador ou use upload de arquivo.',
+        form: cameraAccessErrorMessage(err),
       }));
     }
   };

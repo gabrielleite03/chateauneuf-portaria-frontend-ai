@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, User, Phone, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
 import { Resident } from '../types';
+import { cameraAccessErrorMessage } from '../utils/camera';
 
 interface ResidentsModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
@@ -87,7 +88,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       setIsFamilyWebcamActive(true);
     } catch (err) {
       console.error("Error accessing webcam", err);
-      showToast("Não foi possível acessar a webcam para o residente adicional.", "error");
+      showToast(cameraAccessErrorMessage(err), "error");
     }
   };
 
@@ -221,7 +222,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       setIsWebcamActive(true);
     } catch (err) {
       console.error("Error accessing webcam", err);
-      showToast("Não foi possível acessar a webcam. Verifique se o dispositivo possui câmera ativa e permissão concedida.", "error");
+      showToast(cameraAccessErrorMessage(err), "error");
     }
   };
 
@@ -274,7 +275,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       setIsTenantWebcamActive(true);
     } catch (err) {
       console.error("Error accessing webcam", err);
-      showToast("Nao foi possivel acessar a webcam para a foto do inquilino.", "error");
+      showToast(cameraAccessErrorMessage(err), "error");
     }
   };
 
