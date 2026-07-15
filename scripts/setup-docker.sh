@@ -3,14 +3,16 @@ set -eu
 
 GOOGLE_CREDENTIALS_FILE=""
 GOOGLE_SHEET_ID=""
-FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.1"
+FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.2"
 BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:2026.07.14.4"
 FRONTEND_PORT="8081"
+FRONTEND_HTTPS_PORT="8443"
 BACKEND_PORT="18080"
 GOOGLE_SHEET_NAME="Entradas"
 GOOGLE_DRIVE_FOLDER_ID=""
 LOCAL_DATA_DIR="./data"
 LOCAL_PHOTO_DIR="./photos"
+LOCAL_CERT_DIR="./certs"
 SYNC_INTERVAL_SECONDS="30"
 BUILD="false"
 PULL="false"
@@ -29,11 +31,13 @@ Options:
   --frontend-image IMAGE
   --backend-image IMAGE
   --frontend-port PORT
+  --frontend-https-port PORT
   --backend-port PORT
   --google-sheet-name NAME
   --google-drive-folder-id ID
   --local-photo-dir PATH
   --local-data-dir PATH
+  --local-cert-dir PATH
   --sync-interval-seconds SECONDS
   --pull
   --build
@@ -63,6 +67,10 @@ while [ "$#" -gt 0 ]; do
       FRONTEND_PORT="${2:-}"
       shift 2
       ;;
+    --frontend-https-port)
+      FRONTEND_HTTPS_PORT="${2:-}"
+      shift 2
+      ;;
     --backend-port)
       BACKEND_PORT="${2:-}"
       shift 2
@@ -81,6 +89,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --local-data-dir)
       LOCAL_DATA_DIR="${2:-}"
+      shift 2
+      ;;
+    --local-cert-dir)
+      LOCAL_CERT_DIR="${2:-}"
       shift 2
       ;;
     --sync-interval-seconds)
@@ -121,6 +133,17 @@ if [ ! -f "$GOOGLE_CREDENTIALS_FILE" ]; then
   exit 1
 fi
 
+run_sudo() {
+  if [ "$(id -u)" -eq 0 ]; then
+    "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo "$@"
+  else
+    echo "Este comando precisa de sudo/root: $*" >&2
+    exit 1
+  fi
+}
+
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PROJECT_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 SECRETS_DIR="$PROJECT_ROOT/secrets"
@@ -135,10 +158,54 @@ if [ "$SOURCE_CREDENTIALS" != "$TARGET_CREDENTIALS_RESOLVED" ]; then
 fi
 chmod 600 "$TARGET_CREDENTIALS" 2>/dev/null || true
 
+resolve_project_path() {
+  case "$1" in
+    /*) printf '%s\n' "$1" ;;
+    *) printf '%s\n' "$PROJECT_ROOT/$1" ;;
+  esac
+}
+
+ensure_openssl() {
+  if command -v openssl >/dev/null 2>&1; then
+    return
+  fi
+  if command -v apt-get >/dev/null 2>&1; then
+    run_sudo apt-get update
+    run_sudo apt-get install -y openssl
+    return
+  fi
+  echo "OpenSSL nao encontrado. Instale openssl ou gere certs/localhost.crt e certs/localhost.key manualmente." >&2
+  exit 1
+}
+
+ensure_local_https_certificate() {
+  cert_dir=$(resolve_project_path "$LOCAL_CERT_DIR")
+  cert_path="$cert_dir/localhost.crt"
+  key_path="$cert_dir/localhost.key"
+
+  mkdir -p "$cert_dir"
+  if [ -f "$cert_path" ] && [ -f "$key_path" ]; then
+    echo "Certificado HTTPS local encontrado: $cert_path"
+    return
+  fi
+
+  ensure_openssl
+  echo "Gerando certificado HTTPS local para https://localhost:$FRONTEND_HTTPS_PORT..."
+  openssl req -x509 -nodes -newkey rsa:2048 -days 1825 \
+    -keyout "$key_path" \
+    -out "$cert_path" \
+    -subj "/CN=localhost" \
+    -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1"
+  chmod 600 "$key_path" 2>/dev/null || true
+}
+
+ensure_local_https_certificate
+
 cat > "$ENV_FILE" <<EOF
 FRONTEND_IMAGE=$FRONTEND_IMAGE
 BACKEND_IMAGE=$BACKEND_IMAGE
 FRONTEND_PORT=$FRONTEND_PORT
+FRONTEND_HTTPS_PORT=$FRONTEND_HTTPS_PORT
 BACKEND_PORT=$BACKEND_PORT
 GOOGLE_SHEET_ID=$GOOGLE_SHEET_ID
 GOOGLE_SHEET_NAME=$GOOGLE_SHEET_NAME
@@ -146,6 +213,7 @@ GOOGLE_DRIVE_FOLDER_ID=$GOOGLE_DRIVE_FOLDER_ID
 SYNC_INTERVAL_SECONDS=$SYNC_INTERVAL_SECONDS
 LOCAL_DATA_DIR=$LOCAL_DATA_DIR
 LOCAL_PHOTO_DIR=$LOCAL_PHOTO_DIR
+LOCAL_CERT_DIR=$LOCAL_CERT_DIR
 ALLOWED_ORIGIN=http://localhost:$FRONTEND_PORT
 EOF
 
@@ -153,6 +221,7 @@ echo "Docker configuration prepared."
 echo "Env file: $ENV_FILE"
 echo "Google credentials: $TARGET_CREDENTIALS"
 echo "Frontend URL: http://localhost:$FRONTEND_PORT"
+echo "Frontend HTTPS URL: https://localhost:$FRONTEND_HTTPS_PORT"
 
 if [ "$BUILD" = "true" ]; then
   cd "$PROJECT_ROOT"

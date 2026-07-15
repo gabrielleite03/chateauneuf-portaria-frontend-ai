@@ -5,9 +5,10 @@ param(
   [string]$InstallDir = "C:\ChateauneufPortaria",
   [string]$SourceDir = "",
   [string]$PackageFile = "chateauneuf-docker-setup.zip",
-  [string]$FrontendImage = "gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.1",
+  [string]$FrontendImage = "gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.2",
   [string]$BackendImage = "gabrielleite03/chateauneuf-portaria-backend:2026.07.14.4",
   [string]$FrontendPort = "8081",
+  [string]$FrontendHttpsPort = "8443",
   [string]$BackendPort = "18080",
   [string]$GoogleSheetName = "Entradas",
   [string]$SyncIntervalSeconds = "30",
@@ -180,10 +181,12 @@ try {
     "-FrontendImage", $FrontendImage,
     "-BackendImage", $BackendImage,
     "-FrontendPort", $FrontendPort,
+    "-FrontendHttpsPort", $FrontendHttpsPort,
     "-BackendPort", $BackendPort,
     "-GoogleSheetName", $GoogleSheetName,
     "-LocalDataDir", ".\data",
     "-LocalPhotoDir", ".\photos",
+    "-LocalCertDir", ".\certs",
     "-SyncIntervalSeconds", $SyncIntervalSeconds
   )
 
@@ -199,8 +202,9 @@ try {
   Write-Host ""
   Write-Host "Instalacao preparada em: $InstallDir"
   Write-Host "Aplicacao: http://localhost:$FrontendPort"
+  Write-Host "Aplicacao HTTPS: https://localhost:$FrontendHttpsPort"
   if (-not $NoStart) {
-    Start-Process "http://localhost:$FrontendPort"
+    Start-Process "https://localhost:$FrontendHttpsPort"
   }
   Write-Host ""
   Write-Host "Verificar containers:"

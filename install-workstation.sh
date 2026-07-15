@@ -5,9 +5,10 @@ GOOGLE_SHEET_ID=""
 INSTALL_DIR="$HOME/ChateauneufPortaria"
 SOURCE_DIR=""
 PACKAGE_FILE="chateauneuf-docker-setup.zip"
-FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.1"
+FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.2"
 BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:2026.07.14.4"
 FRONTEND_PORT="8081"
+FRONTEND_HTTPS_PORT="8443"
 BACKEND_PORT="18080"
 GOOGLE_SHEET_NAME="Entradas"
 SYNC_INTERVAL_SECONDS="30"
@@ -29,6 +30,7 @@ Opcoes:
   --frontend-image IMAGE
   --backend-image IMAGE
   --frontend-port PORT
+  --frontend-https-port PORT
   --backend-port PORT
   --google-sheet-name NAME
   --sync-interval-seconds SECONDS
@@ -65,6 +67,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --frontend-port)
       FRONTEND_PORT="${2:-}"
+      shift 2
+      ;;
+    --frontend-https-port)
+      FRONTEND_HTTPS_PORT="${2:-}"
       shift 2
       ;;
     --backend-port)
@@ -268,10 +274,12 @@ if [ "$NO_START" = "true" ]; then
     --frontend-image "$FRONTEND_IMAGE" \
     --backend-image "$BACKEND_IMAGE" \
     --frontend-port "$FRONTEND_PORT" \
+    --frontend-https-port "$FRONTEND_HTTPS_PORT" \
     --backend-port "$BACKEND_PORT" \
     --google-sheet-name "$GOOGLE_SHEET_NAME" \
     --local-data-dir "./data" \
     --local-photo-dir "./photos" \
+    --local-cert-dir "./certs" \
     --sync-interval-seconds "$SYNC_INTERVAL_SECONDS"
 else
   "$SETUP_SCRIPT" \
@@ -280,22 +288,26 @@ else
     --frontend-image "$FRONTEND_IMAGE" \
     --backend-image "$BACKEND_IMAGE" \
     --frontend-port "$FRONTEND_PORT" \
+    --frontend-https-port "$FRONTEND_HTTPS_PORT" \
     --backend-port "$BACKEND_PORT" \
     --google-sheet-name "$GOOGLE_SHEET_NAME" \
     --local-data-dir "./data" \
     --local-photo-dir "./photos" \
+    --local-cert-dir "./certs" \
     --sync-interval-seconds "$SYNC_INTERVAL_SECONDS" \
     --up
 fi
 
 FRONTEND_URL="http://localhost:$FRONTEND_PORT"
+FRONTEND_HTTPS_URL="https://localhost:$FRONTEND_HTTPS_PORT"
 
 echo ""
 echo "Instalacao preparada em: $INSTALL_DIR"
 echo "Aplicacao: $FRONTEND_URL"
+echo "Aplicacao HTTPS: $FRONTEND_HTTPS_URL"
 
 if [ "$NO_START" != "true" ] && command -v xdg-open >/dev/null 2>&1; then
-  xdg-open "$FRONTEND_URL" >/dev/null 2>&1 || true
+  xdg-open "$FRONTEND_HTTPS_URL" >/dev/null 2>&1 || true
 fi
 
 echo ""

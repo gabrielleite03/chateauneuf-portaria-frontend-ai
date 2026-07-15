@@ -28,15 +28,19 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.1}
+    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.2}
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.07.15.1}
+        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.07.15.2}
         GIT_COMMIT: ${FRONTEND_GIT_COMMIT:-unknown}
     depends_on:
       - backend
     ports:
       - "${FRONTEND_PORT:-8081}:80"
+      - "${FRONTEND_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ${LOCAL_CERT_DIR:-./certs}/localhost.crt:/etc/nginx/certs/localhost.crt:ro
+      - ${LOCAL_CERT_DIR:-./certs}/localhost.key:/etc/nginx/certs/localhost.key:ro
     restart: unless-stopped
