@@ -90,6 +90,7 @@ export default function HistoryVisits({ visits, shoppingDeliveries, keyRecords }
       if (!matchesSearch && record.kind === 'shopping') {
         matchesSearch = (
           record.data.unit.toLowerCase().includes(q) ||
+          (record.data.recipient && record.data.recipient.toLowerCase().includes(q)) ||
           record.data.courierName.toLowerCase().includes(q) ||
           record.data.document.toLowerCase().includes(q) ||
           record.data.store.toLowerCase().includes(q) ||
@@ -306,7 +307,7 @@ export default function HistoryVisits({ visits, shoppingDeliveries, keyRecords }
                           )}
                           <div>
                             <div className="font-bold text-white text-xs">{delivery.product}</div>
-                            <div className="text-[10px] text-slate-500 font-mono mt-0.5 uppercase tracking-tight">Entregador: {delivery.courierName} | Doc: {delivery.document}</div>
+                            <div className="text-[10px] text-slate-500 font-mono mt-0.5 uppercase tracking-tight">Destinatario: {delivery.recipient || 'Nao informado'} | Entregador: {delivery.courierName || 'Nao informado'} | Doc: {delivery.document || 'Nao informado'}</div>
                           </div>
                         </div>
                       </td>

@@ -1,12 +1,12 @@
 services:
   backend:
-    image: ${BACKEND_IMAGE:-gabrielleite03/chateauneuf-portaria-backend:2026.07.14.4}
+    image: ${BACKEND_IMAGE:-gabrielleite03/chateauneuf-portaria-backend:2026.07.15.1}
     user: "0:0"
     build:
       context: ../chateauneuf-portaria-backend
       dockerfile: Dockerfile
       args:
-        APP_VERSION: ${BACKEND_APP_VERSION:-2026.07.14.4}
+        APP_VERSION: ${BACKEND_APP_VERSION:-2026.07.15.1}
         GIT_COMMIT: ${BACKEND_GIT_COMMIT:-unknown}
     environment:
       HTTP_ADDR: :8080
@@ -28,12 +28,12 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.5}
+    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.6}
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.07.15.5}
+        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.07.15.6}
         GIT_COMMIT: ${FRONTEND_GIT_COMMIT:-unknown}
     depends_on:
       - backend

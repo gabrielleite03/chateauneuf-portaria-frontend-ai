@@ -60,6 +60,7 @@ export default function ActiveVisits({
     const q = searchTerm.toLowerCase();
     return (
       delivery.unit.toLowerCase().includes(q) ||
+      (delivery.recipient && delivery.recipient.toLowerCase().includes(q)) ||
       delivery.courierName.toLowerCase().includes(q) ||
       delivery.document.toLowerCase().includes(q) ||
       delivery.store.toLowerCase().includes(q) ||
@@ -353,6 +354,9 @@ export default function ActiveVisits({
                         <Package size={9} />
                         <span>Compra</span>
                       </div>
+                      <p className="text-[11px] text-slate-500 font-mono uppercase tracking-wide mt-1">
+                        Destinatario: {delivery.recipient || 'Nao informado'}
+                      </p>
                       <p className="text-[11px] text-slate-500 font-mono uppercase tracking-wide mt-1">
                         Entregador: {delivery.courierName || 'Nao informado'}
                       </p>

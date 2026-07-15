@@ -11,6 +11,7 @@ interface ShoppingModuleProps {
 export default function ShoppingModule({ onRegister, isInternetOnline }: ShoppingModuleProps) {
   const [formData, setFormData] = useState({
     unit: '',
+    recipient: '',
     courierName: '',
     document: '',
     store: '',
@@ -130,6 +131,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.unit.trim()) newErrors.unit = 'Informe o apartamento da entrega.';
+    if (!formData.recipient.trim()) newErrors.recipient = 'Informe o destinatario da entrega.';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -146,6 +148,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
     try {
       const result = await onRegister({
         unit: formData.unit.trim(),
+        recipient: formData.recipient.trim(),
         courierName: formData.courierName.trim(),
         document: formData.document.trim(),
         store: formData.store.trim(),
@@ -162,7 +165,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
             ? `Compra da ${target} registrada e sincronizada.`
             : `Compra da ${target} gravada localmente e pendente de sincronizacao.`,
         );
-        setFormData({ unit: '', courierName: '', document: '', store: '', product: '', notes: '' });
+        setFormData({ unit: '', recipient: '', courierName: '', document: '', store: '', product: '', notes: '' });
         setPhoto(null);
       }
     } catch (err) {
@@ -240,6 +243,26 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
             </div>
 
             <div>
+              <label htmlFor="input-shopping-recipient" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
+                Destinatario <span className="text-emerald-500">*</span>
+              </label>
+              <div className="relative">
+                <UserRound size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+                <input
+                  id="input-shopping-recipient"
+                  name="recipient"
+                  value={formData.recipient}
+                  onChange={handleInputChange}
+                  placeholder="Nome do morador ou destinatario"
+                  className={`w-full bg-slate-950 border text-slate-100 pl-9 pr-3 py-2.5 text-xs rounded-sm focus:border-emerald-500/50 outline-none transition placeholder-slate-600 ${errors.recipient ? 'border-red-900' : 'border-slate-800'}`}
+                />
+              </div>
+              {errors.recipient && <span className="text-[10px] text-red-400 font-mono mt-1 block">{errors.recipient}</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <label htmlFor="input-shopping-courier" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
                 Nome do Entregador <span className="text-slate-600 font-normal">(Opcional)</span>
               </label>
@@ -256,9 +279,6 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
               </div>
               {errors.courierName && <span className="text-[10px] text-red-400 font-mono mt-1 block">{errors.courierName}</span>}
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="input-shopping-document" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
                 Documento / Codigo <span className="text-slate-600 font-normal">(Opcional)</span>
@@ -273,7 +293,9 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
               />
               {errors.document && <span className="text-[10px] text-red-400 font-mono mt-1 block">{errors.document}</span>}
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="input-shopping-store" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
                 Loja / Transportadora <span className="text-slate-600 font-normal">(Opcional)</span>

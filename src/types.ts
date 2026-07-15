@@ -90,6 +90,7 @@ export interface CommonAreaReservation {
 export interface ShoppingDelivery {
   id: string;
   unit: string;
+  recipient: string;
   courierName: string;
   document: string;
   store: string;
