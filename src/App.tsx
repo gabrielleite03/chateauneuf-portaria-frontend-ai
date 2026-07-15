@@ -228,7 +228,7 @@ export default function App() {
               Reservas
             </TabButton>
             <TabButton active={activeTab === 'shopping'} onClick={() => setActiveTab('shopping')} icon={<Package size={14} />}>
-              Compras
+              Entregas
             </TabButton>
             <TabButton active={activeTab === 'keys'} onClick={() => setActiveTab('keys')} icon={<Key size={14} />}>
               Controle de Chaves

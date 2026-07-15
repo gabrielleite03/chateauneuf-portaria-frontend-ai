@@ -5,7 +5,7 @@ param(
   [string]$InstallDir = "C:\ChateauneufPortaria",
   [string]$SourceDir = "",
   [string]$PackageFile = "chateauneuf-docker-setup.zip",
-  [string]$FrontendImage = "gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.4",
+  [string]$FrontendImage = "gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.5",
   [string]$BackendImage = "gabrielleite03/chateauneuf-portaria-backend:2026.07.14.4",
   [string]$FrontendPort = "8081",
   [string]$FrontendHttpsPort = "8443",
