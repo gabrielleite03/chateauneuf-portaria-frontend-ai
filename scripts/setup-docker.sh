@@ -3,7 +3,7 @@ set -eu
 
 GOOGLE_CREDENTIALS_FILE=""
 GOOGLE_SHEET_ID=""
-FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.2"
+FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.3"
 BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:2026.07.14.4"
 FRONTEND_PORT="8081"
 FRONTEND_HTTPS_PORT="8443"

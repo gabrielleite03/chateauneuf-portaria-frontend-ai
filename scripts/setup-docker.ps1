@@ -5,7 +5,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$GoogleSheetId,
 
-  [string]$FrontendImage = "gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.2",
+  [string]$FrontendImage = "gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.3",
   [string]$BackendImage = "gabrielleite03/chateauneuf-portaria-backend:2026.07.14.4",
   [string]$FrontendPort = "8081",
   [string]$FrontendHttpsPort = "8443",

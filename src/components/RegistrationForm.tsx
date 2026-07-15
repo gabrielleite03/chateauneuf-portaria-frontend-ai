@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserPlus, BookOpen, AlertCircle, CheckCircle2, ShieldCheck, Landmark, Tag, Car, FileText, Camera, Upload, Trash2 } from 'lucide-react';
 import { Visit } from '../types';
-import { cameraAccessErrorMessage } from '../utils/camera';
+import { cameraAccessErrorMessage, openCameraStream, stopMediaStream } from '../utils/camera';
 
 interface RegistrationFormProps {
   onRegister: (data: Omit<Visit, 'id' | 'entryTime' | 'syncStatus'>) => Promise<Visit | null>;
@@ -32,35 +32,40 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
   // Photo & Webcam states
   const [photo, setPhoto] = useState<string | null>(null);
   const [isWebcamActive, setIsWebcamActive] = useState(false);
+  const [isStartingWebcam, setIsStartingWebcam] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const startWebcam = async () => {
+    if (isStartingWebcam || isWebcamActive) return;
+
+    setIsStartingWebcam(true);
+    setErrors(prev => {
+      const copy = { ...prev };
+      delete copy.form;
+      return copy;
+    });
+
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
-      });
+      stopMediaStream(stream);
+      const mediaStream = await openCameraStream('user');
       setStream(mediaStream);
       setIsWebcamActive(true);
     } catch (err) {
-      console.error("Error accessing webcam", err);
+      console.error("Error accessing webcam", err instanceof DOMException ? `${err.name}: ${err.message}` : err);
       setErrors(prev => ({
         ...prev,
         form: cameraAccessErrorMessage(err)
       }));
+    } finally {
+      setIsStartingWebcam(false);
     }
   };
 
   const stopWebcam = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
+    stopMediaStream(stream);
+    setStream(null);
     setIsWebcamActive(false);
   };
 
@@ -101,7 +106,7 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
   useEffect(() => {
     return () => {
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stopMediaStream(stream);
       }
     };
   }, [stream]);
@@ -502,10 +507,11 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
                         <button
                           type="button"
                           onClick={startWebcam}
+                          disabled={isStartingWebcam}
                           className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer"
                         >
                           <Camera size={12} />
-                          <span>Câmera</span>
+                          <span>{isStartingWebcam ? 'Abrindo...' : 'Câmera'}</span>
                         </button>
 
                         <button
