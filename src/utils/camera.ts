@@ -82,3 +82,43 @@ export function cameraAccessErrorMessage(error: unknown): string {
 
   return 'Nao foi possivel acessar a webcam. Verifique se o dispositivo possui camera ativa e se as permissoes foram concedidas.';
 }
+
+export async function resizeImageDataUrl(dataUrl: string, maxBytes = 350000): Promise<string> {
+  const image = await loadImage(dataUrl);
+  const maxSides = [900, 720, 560, 420];
+  const qualities = [0.78, 0.68, 0.58, 0.48];
+  let lastCandidate = dataUrl;
+
+  for (const maxSide of maxSides) {
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) continue;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+
+    for (const quality of qualities) {
+      const resized = canvas.toDataURL('image/jpeg', quality);
+      lastCandidate = resized;
+      if (resized.length <= maxBytes) {
+        return resized;
+      }
+    }
+  }
+
+  return lastCandidate;
+}
+
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('image load failed'));
+    image.src = dataUrl;
+  });
+}

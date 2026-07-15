@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, User, Phone, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
 import { Resident } from '../types';
-import { cameraAccessErrorMessage } from '../utils/camera';
+import { cameraAccessErrorMessage, openCameraStream, resizeImageDataUrl, stopMediaStream } from '../utils/camera';
 
 interface ResidentsModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
@@ -38,11 +38,13 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   // Photo & Webcam states
   const [photo, setPhoto] = useState<string | null>(null);
   const [isWebcamActive, setIsWebcamActive] = useState(false);
+  const [isStartingWebcam, setIsStartingWebcam] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; name: string } | null>(null);
   const [isTenantWebcamActive, setIsTenantWebcamActive] = useState(false);
+  const [isStartingTenantWebcam, setIsStartingTenantWebcam] = useState(false);
   const tenantVideoRef = useRef<HTMLVideoElement | null>(null);
   const [tenantStream, setTenantStream] = useState<MediaStream | null>(null);
   const tenantFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -54,6 +56,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const [editingMemberName, setEditingMemberName] = useState('');
   const [editingMemberPhoto, setEditingMemberPhoto] = useState<string | null>(null);
   const [isFamilyWebcamActive, setIsFamilyWebcamActive] = useState(false);
+  const [isStartingFamilyWebcam, setIsStartingFamilyWebcam] = useState(false);
   const familyVideoRef = useRef<HTMLVideoElement | null>(null);
   const [familyStream, setFamilyStream] = useState<MediaStream | null>(null);
   const familyFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -76,31 +79,34 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   };
 
   const startFamilyWebcam = async () => {
+    if (isStartingFamilyWebcam || isFamilyWebcamActive) return;
+    setIsStartingFamilyWebcam(true);
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
-      });
+      stopMediaStream(stream);
+      stopMediaStream(tenantStream);
+      stopMediaStream(familyStream);
+      setStream(null);
+      setTenantStream(null);
+      setIsWebcamActive(false);
+      setIsTenantWebcamActive(false);
+      const mediaStream = await openCameraStream('user');
       setFamilyStream(mediaStream);
       setIsFamilyWebcamActive(true);
     } catch (err) {
-      console.error("Error accessing webcam", err);
+      console.error("Error accessing family webcam", err instanceof DOMException ? `${err.name}: ${err.message}` : err);
       showToast(cameraAccessErrorMessage(err), "error");
+    } finally {
+      setIsStartingFamilyWebcam(false);
     }
   };
 
   const stopFamilyWebcam = () => {
-    if (familyStream) {
-      familyStream.getTracks().forEach(track => track.stop());
-      setFamilyStream(null);
-    }
+    stopMediaStream(familyStream);
+    setFamilyStream(null);
     setIsFamilyWebcamActive(false);
   };
 
-  const captureFamilyPhoto = () => {
+  const captureFamilyPhoto = async () => {
     if (familyVideoRef.current) {
       const canvas = document.createElement('canvas');
       const width = familyVideoRef.current.videoWidth || 1280;
@@ -110,7 +116,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(familyVideoRef.current, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const dataUrl = await resizeImageDataUrl(canvas.toDataURL('image/jpeg', 0.86));
         if (isEditingFamilyMember) {
           setEditingMemberPhoto(dataUrl);
         } else {
@@ -125,11 +131,17 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        if (isEditingFamilyMember) {
-          setEditingMemberPhoto(reader.result as string);
-        } else {
-          setNewMemberPhoto(reader.result as string);
+      reader.onloadend = async () => {
+        try {
+          const resized = await resizeImageDataUrl(reader.result as string);
+          if (isEditingFamilyMember) {
+            setEditingMemberPhoto(resized);
+          } else {
+            setNewMemberPhoto(resized);
+          }
+        } catch (err) {
+          console.error('Failed to resize family photo', err);
+          showToast('Nao foi possivel reduzir a foto do residente selecionada.', 'error');
         }
       };
       reader.readAsDataURL(file);
@@ -210,31 +222,34 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   };
 
   const startWebcam = async () => {
+    if (isStartingWebcam || isWebcamActive) return;
+    setIsStartingWebcam(true);
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
-      });
+      stopMediaStream(stream);
+      stopMediaStream(tenantStream);
+      stopMediaStream(familyStream);
+      setTenantStream(null);
+      setFamilyStream(null);
+      setIsTenantWebcamActive(false);
+      setIsFamilyWebcamActive(false);
+      const mediaStream = await openCameraStream('user');
       setStream(mediaStream);
       setIsWebcamActive(true);
     } catch (err) {
-      console.error("Error accessing webcam", err);
+      console.error("Error accessing resident webcam", err instanceof DOMException ? `${err.name}: ${err.message}` : err);
       showToast(cameraAccessErrorMessage(err), "error");
+    } finally {
+      setIsStartingWebcam(false);
     }
   };
 
   const stopWebcam = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
+    stopMediaStream(stream);
+    setStream(null);
     setIsWebcamActive(false);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
       const width = videoRef.current.videoWidth || 1280;
@@ -244,7 +259,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const dataUrl = await resizeImageDataUrl(canvas.toDataURL('image/jpeg', 0.86));
         setPhoto(dataUrl);
         stopWebcam();
       }
@@ -255,39 +270,47 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhoto(reader.result as string);
+      reader.onloadend = async () => {
+        try {
+          setPhoto(await resizeImageDataUrl(reader.result as string));
+        } catch (err) {
+          console.error('Failed to resize resident photo', err);
+          showToast('Nao foi possivel reduzir a foto selecionada.', 'error');
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
   const startTenantWebcam = async () => {
+    if (isStartingTenantWebcam || isTenantWebcamActive) return;
+    setIsStartingTenantWebcam(true);
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
-      });
+      stopMediaStream(stream);
+      stopMediaStream(tenantStream);
+      stopMediaStream(familyStream);
+      setStream(null);
+      setFamilyStream(null);
+      setIsWebcamActive(false);
+      setIsFamilyWebcamActive(false);
+      const mediaStream = await openCameraStream('user');
       setTenantStream(mediaStream);
       setIsTenantWebcamActive(true);
     } catch (err) {
-      console.error("Error accessing webcam", err);
+      console.error("Error accessing tenant webcam", err instanceof DOMException ? `${err.name}: ${err.message}` : err);
       showToast(cameraAccessErrorMessage(err), "error");
+    } finally {
+      setIsStartingTenantWebcam(false);
     }
   };
 
   const stopTenantWebcam = () => {
-    if (tenantStream) {
-      tenantStream.getTracks().forEach(track => track.stop());
-      setTenantStream(null);
-    }
+    stopMediaStream(tenantStream);
+    setTenantStream(null);
     setIsTenantWebcamActive(false);
   };
 
-  const captureTenantPhoto = () => {
+  const captureTenantPhoto = async () => {
     if (tenantVideoRef.current) {
       const canvas = document.createElement('canvas');
       const width = tenantVideoRef.current.videoWidth || 1280;
@@ -297,7 +320,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(tenantVideoRef.current, 0, 0, width, height);
-        setTenantPhoto(canvas.toDataURL('image/jpeg', 0.92));
+        setTenantPhoto(await resizeImageDataUrl(canvas.toDataURL('image/jpeg', 0.86)));
         stopTenantWebcam();
       }
     }
@@ -307,8 +330,13 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setTenantPhoto(reader.result as string);
+      reader.onloadend = async () => {
+        try {
+          setTenantPhoto(await resizeImageDataUrl(reader.result as string));
+        } catch (err) {
+          console.error('Failed to resize tenant photo', err);
+          showToast('Nao foi possivel reduzir a foto do inquilino selecionada.', 'error');
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -318,13 +346,13 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   useEffect(() => {
     return () => {
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stopMediaStream(stream);
       }
       if (familyStream) {
-        familyStream.getTracks().forEach(track => track.stop());
+        stopMediaStream(familyStream);
       }
       if (tenantStream) {
-        tenantStream.getTracks().forEach(track => track.stop());
+        stopMediaStream(tenantStream);
       }
     };
   }, [stream, familyStream, tenantStream]);
@@ -808,10 +836,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                           <button
                             type="button"
                             onClick={startTenantWebcam}
+                            disabled={isStartingTenantWebcam}
                             className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer"
                           >
                             <Camera size={12} />
-                            <span>Camera</span>
+                            <span>{isStartingTenantWebcam ? 'Abrindo...' : 'Camera'}</span>
                           </button>
                           <button
                             type="button"
@@ -944,10 +973,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                           <button
                             type="button"
                             onClick={startFamilyWebcam}
+                            disabled={isStartingFamilyWebcam}
                             className="px-2 py-1 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-[9px] text-slate-300 font-mono rounded-sm transition flex items-center gap-1 cursor-pointer"
                           >
                             <Camera size={10} />
-                            <span>Câmera do Residente</span>
+                            <span>{isStartingFamilyWebcam ? 'Abrindo...' : 'Câmera do Residente'}</span>
                           </button>
                           
                           <button
@@ -1135,10 +1165,11 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                           <button
                             type="button"
                             onClick={startWebcam}
+                            disabled={isStartingWebcam}
                             className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer"
                           >
                             <Camera size={12} />
-                            <span>Câmera</span>
+                            <span>{isStartingWebcam ? 'Abrindo...' : 'Câmera'}</span>
                           </button>
 
                           <button

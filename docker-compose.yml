@@ -28,12 +28,12 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.3}
+    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.07.15.4}
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.07.15.3}
+        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.07.15.4}
         GIT_COMMIT: ${FRONTEND_GIT_COMMIT:-unknown}
     depends_on:
       - backend
