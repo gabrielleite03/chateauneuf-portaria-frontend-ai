@@ -174,6 +174,32 @@ ensure_unzip() {
   exit 1
 }
 
+extract_package() {
+  package_path="$1"
+
+  set +e
+  unzip -o "$package_path"
+  unzip_code="$?"
+  set -e
+
+  if [ "$unzip_code" -eq 0 ]; then
+    return
+  fi
+
+  # Windows-built ZIPs can make Info-ZIP return 1 only because entries use
+  # backslashes. If the required files exist after extraction, continue.
+  if [ "$unzip_code" -eq 1 ] &&
+    [ -f "scripts/setup-docker.sh" ] &&
+    [ -f "secrets/google-service-account.json" ] &&
+    [ -f "docker-compose.yml" ]; then
+    echo "ZIP extraido com aviso compativel com Linux. Continuando..."
+    return
+  fi
+
+  echo "Falha ao extrair $package_path. Codigo de saida: $unzip_code" >&2
+  exit "$unzip_code"
+}
+
 ensure_docker_ready() {
   if ! command -v docker >/dev/null 2>&1; then
     install_docker_desktop_or_engine
@@ -242,7 +268,7 @@ fi
 if [ -f "$SOURCE_PACKAGE_PATH" ]; then
   ensure_unzip
   copy_distribution_file "$PACKAGE_NAME"
-  (cd "$INSTALL_DIR" && unzip -o "$PACKAGE_NAME")
+  (cd "$INSTALL_DIR" && extract_package "$PACKAGE_NAME")
   copy_distribution_file "docker-compose.yml"
   copy_distribution_file ".env.docker.example"
 elif [ "$SOURCE_IS_EXTRACTED" = "true" ]; then

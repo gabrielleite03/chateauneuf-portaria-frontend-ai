@@ -171,11 +171,28 @@ ensure_openssl() {
   fi
   if command -v apt-get >/dev/null 2>&1; then
     run_sudo apt-get update
-    run_sudo apt-get install -y openssl
+    run_sudo apt-get install -y openssl ca-certificates
     return
   fi
   echo "OpenSSL nao encontrado. Instale openssl ou gere certs/localhost.crt e certs/localhost.key manualmente." >&2
   exit 1
+}
+
+install_trusted_local_certificate() {
+  cert_path="$1"
+
+  if ! command -v update-ca-certificates >/dev/null 2>&1; then
+    echo "Aviso: update-ca-certificates nao encontrado. Se o navegador mostrar alerta, confie manualmente em: $cert_path" >&2
+    return
+  fi
+
+  target_path="/usr/local/share/ca-certificates/chateauneuf-localhost.crt"
+  echo "Instalando certificado localhost como confiavel no sistema..."
+  if run_sudo cp "$cert_path" "$target_path" && run_sudo update-ca-certificates >/dev/null; then
+    echo "Certificado localhost instalado no trust store do sistema."
+  else
+    echo "Aviso: nao foi possivel instalar o certificado como confiavel. Importe manualmente: $cert_path" >&2
+  fi
 }
 
 ensure_local_https_certificate() {
@@ -186,6 +203,7 @@ ensure_local_https_certificate() {
   mkdir -p "$cert_dir"
   if [ -f "$cert_path" ] && [ -f "$key_path" ]; then
     echo "Certificado HTTPS local encontrado: $cert_path"
+    install_trusted_local_certificate "$cert_path"
     return
   fi
 
@@ -197,6 +215,7 @@ ensure_local_https_certificate() {
     -subj "/CN=localhost" \
     -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1"
   chmod 600 "$key_path" 2>/dev/null || true
+  install_trusted_local_certificate "$cert_path"
 }
 
 ensure_local_https_certificate
