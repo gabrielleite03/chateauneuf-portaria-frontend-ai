@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { UserPlus, BookOpen, AlertCircle, CheckCircle2, ShieldCheck, Landmark, Tag, Car, FileText, Camera, Upload, Trash2 } from 'lucide-react';
-import { Visit } from '../types';
+import { Resident, Visit } from '../types';
 import { cameraAccessErrorMessage, openCameraStream, stopMediaStream } from '../utils/camera';
 
 interface RegistrationFormProps {
@@ -28,6 +28,8 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [registeredItem, setRegisteredItem] = useState<Visit | null>(null);
+  const [destinationOptions, setDestinationOptions] = useState<string[]>(['Zeladoria']);
+  const [isDestinationOpen, setIsDestinationOpen] = useState(false);
 
   // Photo & Webcam states
   const [photo, setPhoto] = useState<string | null>(null);
@@ -118,9 +120,31 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
     }
   }, [isWebcamActive, stream]);
 
-  // Quick helper lists for fast click auto-complete (matching new apartment format 11 to 84)
-  const quickUnits = ["Apto 11", "Apto 32", "Apto 54", "Cobertura", "Portaria", "Área Comum"];
+  useEffect(() => {
+    const loadDestinations = async () => {
+      try {
+        const response = await fetch('/api/residents');
+        if (!response.ok) return;
+
+        const residents: Resident[] = await response.json();
+        const apartmentOptions = residents
+          .filter(resident => resident.unit?.trim())
+          .map(resident => `Apto ${resident.unit.trim()}`)
+          .sort((left, right) => left.localeCompare(right, 'pt-BR', { numeric: true }));
+
+        setDestinationOptions(['Zeladoria', ...Array.from(new Set(apartmentOptions))]);
+      } catch (error) {
+        console.error('Failed to load registered apartment destinations', error);
+      }
+    };
+
+    loadDestinations();
+  }, []);
+
   const quickCompanies = ["Pinturas Sul", "Gás Inspector", "Conserta Tudo", "Elevadores Otis", "Jardinagem Silva"];
+  const filteredDestinationOptions = destinationOptions.filter(option =>
+    option.toLowerCase().includes(formData.unit.trim().toLowerCase())
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -376,32 +400,65 @@ export default function RegistrationForm({ onRegister, isInternetOnline }: Regis
                 <label htmlFor="input-unit" className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">
                   Destino / Unidade <span className="text-emerald-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  id="input-unit"
-                  name="unit"
-                  value={formData.unit}
-                  onChange={handleInputChange}
-                  placeholder="Apto ou Bloco"
-                  className={`w-full bg-slate-950 border text-slate-100 p-2.5 text-xs rounded-sm focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-950/30 outline-none transition placeholder-slate-600 ${
-                    errors.unit ? 'border-red-900' : 'border-slate-800'
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="input-unit"
+                    name="unit"
+                    value={formData.unit}
+                    onChange={(event) => {
+                      handleInputChange(event);
+                      setIsDestinationOpen(true);
+                    }}
+                    onFocus={() => setIsDestinationOpen(true)}
+                    onBlur={() => window.setTimeout(() => setIsDestinationOpen(false), 120)}
+                    placeholder="Digite ou selecione um destino"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={isDestinationOpen}
+                    aria-controls="destination-options"
+                    autoComplete="off"
+                    className={`w-full bg-slate-950 border text-slate-100 p-2.5 text-xs rounded-sm focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-950/30 outline-none transition placeholder-slate-600 ${
+                      errors.unit ? 'border-red-900' : 'border-slate-800'
+                    }`}
+                  />
+
+                  {isDestinationOpen && (
+                    <div
+                      id="destination-options"
+                      role="listbox"
+                      className="absolute z-30 mt-1 w-full max-h-52 overflow-y-auto rounded-sm border border-slate-700 bg-slate-950 shadow-xl"
+                    >
+                      {filteredDestinationOptions.length > 0 ? (
+                        filteredDestinationOptions.map(option => (
+                          <button
+                            key={option}
+                            type="button"
+                            role="option"
+                            aria-selected={formData.unit === option}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              autoFillField('unit', option);
+                              setIsDestinationOpen(false);
+                            }}
+                            className="block w-full border-b border-slate-900 px-3 py-2 text-left text-xs font-mono text-slate-300 transition last:border-b-0 hover:bg-emerald-950/40 hover:text-emerald-400"
+                          >
+                            {option}
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-[10px] font-mono text-slate-500">
+                          Nenhum destino cadastrado encontrado.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {errors.unit && <span className="text-[10px] text-red-400 font-mono mt-1 block">{errors.unit}</span>}
 
-                {/* Quick destination units */}
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {quickUnits.map(u => (
-                    <button
-                      key={u}
-                      type="button"
-                      onClick={() => autoFillField('unit', u)}
-                      className="text-[9px] font-mono bg-slate-950 border border-slate-800/60 hover:bg-slate-900 text-slate-400 hover:text-emerald-400 transition px-1.5 py-0.5 rounded-sm cursor-pointer"
-                    >
-                      + {u}
-                    </button>
-                  ))}
-                </div>
+                <p className="mt-1 text-[9px] font-mono text-slate-600">
+                  Apartamentos cadastrados e Zeladoria.
+                </p>
               </div>
 
               {/* Input Vehicle Plate */}

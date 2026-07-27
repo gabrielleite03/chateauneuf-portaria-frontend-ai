@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Sparkles, 
   Calendar, 
@@ -24,7 +24,7 @@ import {
   Upload,
   Trash2
 } from 'lucide-react';
-import { DiaristaEntry } from '../types';
+import { DiaristaEntry, Resident } from '../types';
 import { cameraAccessErrorMessage } from '../utils/camera';
 
 interface DiaristasModuleProps {
@@ -41,8 +41,11 @@ export default function DiaristasModule({ showToast, isInternetOnline }: Diarist
 
   // Form states
   const [name, setName] = useState('');
+  const [isProfileAutocompleteOpen, setIsProfileAutocompleteOpen] = useState(false);
   const [rg, setRg] = useState('');
   const [unit, setUnit] = useState('');
+  const [unitOptions, setUnitOptions] = useState<string[]>([]);
+  const [isUnitAutocompleteOpen, setIsUnitAutocompleteOpen] = useState(false);
   const [authorizedBy, setAuthorizedBy] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [entryTime, setEntryTime] = useState('');
@@ -155,6 +158,76 @@ export default function DiaristasModule({ showToast, isInternetOnline }: Diarist
     updateTime();
   }, []);
 
+  useEffect(() => {
+    const loadRegisteredUnits = async () => {
+      try {
+        const response = await fetch('/api/residents');
+        if (!response.ok) return;
+
+        const residents: Resident[] = await response.json();
+        const options = residents
+          .filter(resident => resident.unit?.trim())
+          .map(resident => `Apto ${resident.unit.trim()}`)
+          .sort((left, right) => left.localeCompare(right, 'pt-BR', { numeric: true }));
+
+        setUnitOptions(Array.from(new Set(options)));
+      } catch (error) {
+        console.error('Failed to load registered units for diaristas', error);
+      }
+    };
+
+    loadRegisteredUnits();
+  }, []);
+
+  const filteredUnitOptions = unitOptions.filter(option =>
+    option.toLowerCase().includes(unit.trim().toLowerCase())
+  );
+
+  const diaristaProfiles = useMemo(() => {
+    const uniqueProfiles = new Map<string, DiaristaEntry>();
+    for (const entry of entries) {
+      const key = `${entry.name.trim().toLowerCase()}|${entry.rg.trim().toLowerCase()}|${entry.unit.trim().toLowerCase()}`;
+      if (!uniqueProfiles.has(key)) {
+        uniqueProfiles.set(key, entry);
+      }
+    }
+    return Array.from(uniqueProfiles.values()).sort((left, right) =>
+      left.name.localeCompare(right.name, 'pt-BR')
+    );
+  }, [entries]);
+
+  const filteredDiaristaProfiles = diaristaProfiles.filter(profile =>
+    profile.name.toLowerCase().includes(name.trim().toLowerCase()) ||
+    profile.rg.toLowerCase().includes(name.trim().toLowerCase())
+  );
+
+  const selectDiaristaProfile = (profile: DiaristaEntry) => {
+    setName(profile.name);
+    setRg(profile.rg);
+    setUnit(profile.unit.toLowerCase().startsWith('apto') ? profile.unit : `Apto ${profile.unit}`);
+    setAuthorizedBy(profile.authorizedBy);
+    setPhoto(profile.photo || null);
+    setIsProfileAutocompleteOpen(false);
+    setFormErrors(current => {
+      const next = { ...current };
+      delete next.name;
+      delete next.rg;
+      delete next.unit;
+      delete next.authorizedBy;
+      return next;
+    });
+  };
+
+  const selectUnit = (option: string) => {
+    setUnit(option);
+    setIsUnitAutocompleteOpen(false);
+    setFormErrors(current => {
+      const next = { ...current };
+      delete next.unit;
+      return next;
+    });
+  };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!name.trim()) errors.name = "Nome é obrigatório.";
@@ -164,6 +237,15 @@ export default function DiaristasModule({ showToast, isInternetOnline }: Diarist
     if (!date) errors.date = "Data é obrigatória.";
     if (!entryTime) errors.entryTime = "Hora da entrada é obrigatória.";
     if (!gatekeeper.trim()) errors.gatekeeper = "Porteiro responsável é obrigatório.";
+    const normalizedUnit = unit.trim().toLowerCase().replace(/^apto\.?\s*/, '');
+    const alreadyInside = entries.some(entry =>
+      !entry.exitTime &&
+      entry.rg.trim().toLowerCase() === rg.trim().toLowerCase() &&
+      entry.unit.trim().toLowerCase().replace(/^apto\.?\s*/, '') === normalizedUnit
+    );
+    if (rg.trim() && unit.trim() && alreadyInside) {
+      errors.name = "Esta diarista já possui uma entrada ativa. Registre a saída antes de uma nova entrada.";
+    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -278,7 +360,9 @@ export default function DiaristasModule({ showToast, isInternetOnline }: Diarist
             <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-slate-100">
               Registrar Entrada de Diarista
             </h2>
-            <p className="text-[10px] text-slate-400 font-mono">CADASTRO DIÁRIO DE LIMPEZA E SERVIÇOS</p>
+            <p className="text-[10px] text-slate-400 font-mono">
+              {diaristaProfiles.length} CADASTROS ATIVOS • SELECIONE OU CADASTRE UMA NOVA
+            </p>
           </div>
         </div>
 
@@ -315,13 +399,71 @@ export default function DiaristasModule({ showToast, isInternetOnline }: Diarist
               </span>
               <input
                 type="text"
-                placeholder="Ex: Maria das Graças Silva"
+                placeholder="Digite o nome ou RG para localizar"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setIsProfileAutocompleteOpen(true);
+                  if (formErrors.name) {
+                    setFormErrors(current => {
+                      const next = { ...current };
+                      delete next.name;
+                      return next;
+                    });
+                  }
+                }}
+                onFocus={() => setIsProfileAutocompleteOpen(true)}
+                onBlur={() => window.setTimeout(() => setIsProfileAutocompleteOpen(false), 120)}
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={isProfileAutocompleteOpen}
+                aria-controls="diarista-profile-options"
+                autoComplete="off"
                 className={`w-full pl-9 pr-3 bg-slate-950 border ${formErrors.name ? 'border-red-500/60' : 'border-slate-800'} text-slate-100 p-2 text-xs placeholder:text-slate-600 rounded-sm focus:border-emerald-500/50 outline-none`}
               />
+
+              {isProfileAutocompleteOpen && (
+                <div
+                  id="diarista-profile-options"
+                  role="listbox"
+                  className="absolute z-40 mt-1 top-full left-0 w-full max-h-56 overflow-y-auto rounded-sm border border-slate-700 bg-slate-950 shadow-xl"
+                >
+                  {filteredDiaristaProfiles.length > 0 ? (
+                    filteredDiaristaProfiles.map(profile => (
+                      <button
+                        key={`${profile.name}-${profile.rg}-${profile.unit}`}
+                        type="button"
+                        role="option"
+                        aria-selected={name === profile.name && rg === profile.rg && unit.includes(profile.unit)}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => selectDiaristaProfile(profile)}
+                        className="flex w-full items-center justify-between gap-3 border-b border-slate-900 px-3 py-2 text-left font-mono transition last:border-b-0 hover:bg-emerald-950/40"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-bold uppercase text-slate-200">
+                            {profile.name}
+                          </span>
+                          <span className="block truncate text-[9px] text-slate-500">
+                            RG {profile.rg} • {profile.unit}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-[8px] font-bold uppercase text-emerald-500">
+                          Usar cadastro
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-3 py-2 text-[10px] font-mono text-slate-500">
+                      Nova diarista: complete os dados abaixo para criar o primeiro registro.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
+            <p className="mt-1 text-[9px] font-mono text-slate-600">
+              Ao selecionar um cadastro, RG, apartamento e responsável são preenchidos automaticamente.
+            </p>
             {formErrors.name && <p className="text-[10px] text-red-400 mt-1">{formErrors.name}</p>}
           </div>
 
@@ -357,27 +499,61 @@ export default function DiaristasModule({ showToast, isInternetOnline }: Diarist
               </span>
               <input
                 type="text"
-                placeholder="Ex: Apto 11, Apto 32"
+                placeholder="Digite ou selecione um apartamento"
                 required
                 value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                onChange={(event) => {
+                  setUnit(event.target.value);
+                  setIsUnitAutocompleteOpen(true);
+                  if (formErrors.unit) {
+                    setFormErrors(current => {
+                      const next = { ...current };
+                      delete next.unit;
+                      return next;
+                    });
+                  }
+                }}
+                onFocus={() => setIsUnitAutocompleteOpen(true)}
+                onBlur={() => window.setTimeout(() => setIsUnitAutocompleteOpen(false), 120)}
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={isUnitAutocompleteOpen}
+                aria-controls="diarista-unit-options"
+                autoComplete="off"
                 className={`w-full pl-9 pr-3 bg-slate-950 border ${formErrors.unit ? 'border-red-500/60' : 'border-slate-800'} text-slate-100 p-2 text-xs placeholder:text-slate-600 rounded-sm focus:border-emerald-500/50 outline-none`}
               />
-            </div>
-            
-            {/* Quick selectors matching building from 11 to 84 */}
-            <div className="mt-2 flex flex-wrap gap-1">
-              {["11", "22", "34", "51", "74", "84"].map(u => (
-                <button
-                  type="button"
-                  key={u}
-                  onClick={() => setUnit(`Apto ${u}`)}
-                  className="px-1.5 py-0.5 bg-slate-950 hover:bg-slate-800 text-[9px] text-slate-400 hover:text-slate-200 border border-slate-850 rounded-sm transition cursor-pointer"
+
+              {isUnitAutocompleteOpen && (
+                <div
+                  id="diarista-unit-options"
+                  role="listbox"
+                  className="absolute z-30 mt-1 top-full left-0 w-full max-h-52 overflow-y-auto rounded-sm border border-slate-700 bg-slate-950 shadow-xl"
                 >
-                  Apto {u}
-                </button>
-              ))}
+                  {filteredUnitOptions.length > 0 ? (
+                    filteredUnitOptions.map(option => (
+                      <button
+                        key={option}
+                        type="button"
+                        role="option"
+                        aria-selected={unit === option}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => selectUnit(option)}
+                        className="block w-full border-b border-slate-900 px-3 py-2 text-left text-xs font-mono text-slate-300 transition last:border-b-0 hover:bg-emerald-950/40 hover:text-emerald-400"
+                      >
+                        {option}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-3 py-2 text-[10px] font-mono text-slate-500">
+                      Nenhum apartamento cadastrado encontrado.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
+            <p className="mt-1 text-[9px] font-mono text-slate-600">
+              Apartamentos com cadastro de moradores.
+            </p>
             {formErrors.unit && <p className="text-[10px] text-red-400 mt-1">{formErrors.unit}</p>}
           </div>
 

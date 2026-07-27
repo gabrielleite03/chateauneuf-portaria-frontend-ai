@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Ban, CalendarDays, Check, Clock, MapPin, PartyPopper, Plus, RefreshCw, Search, Trash2, User, Users } from 'lucide-react';
 import { CommonAreaReservation } from '../types';
 import { createReservation, deleteReservation, fetchReservations, updateReservationStatus } from '../api';
+import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
 
 interface ReservationsModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
@@ -207,10 +208,9 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
             <div className="grid grid-cols-3 gap-3">
               <FieldError className="col-span-1" error={errors.unit}>
                 <label className="block text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">Apto *</label>
-                <input
+                <RegisteredUnitAutocomplete
                   value={formData.unit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                  placeholder="11"
+                  onChange={unit => setFormData(prev => ({ ...prev, unit }))}
                   className={`w-full bg-slate-950 border ${errors.unit ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-sm px-3 py-2.5 text-sm outline-none focus:border-emerald-500/60`}
                 />
               </FieldError>

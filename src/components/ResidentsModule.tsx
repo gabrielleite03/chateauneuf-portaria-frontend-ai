@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, User, Phone, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
+import { Home, User, Phone, Mail, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
 import { Resident } from '../types';
 import { cameraAccessErrorMessage, openCameraStream, resizeImageDataUrl, stopMediaStream } from '../utils/camera';
 
@@ -25,11 +25,16 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   
   // Selected apartment for detail/editing
   const [selectedUnit, setSelectedUnit] = useState<string | null>("11");
+  const [unitSearch, setUnitSearch] = useState('Apartamento 11');
+  const [isUnitAutocompleteOpen, setIsUnitAutocompleteOpen] = useState(false);
   
   // Form editing states
   const [owner, setOwner] = useState('');
   const [phones, setPhones] = useState('');
+  const [email, setEmail] = useState('');
   const [tenant, setTenant] = useState('');
+  const [tenantEmail, setTenantEmail] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
   const [tenantPhoto, setTenantPhoto] = useState<string | null>(null);
   const [familyMembers, setFamilyMembers] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -376,9 +381,21 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
     }
   }, [isTenantWebcamActive, tenantStream]);
 
-  // Building structure constants (8 floors x 4 apartments starting from 11 up to 84)
-  const FLOORS = [8, 7, 6, 5, 4, 3, 2, 1];
-  const UNITS_PER_FLOOR = ["1", "2", "3", "4"];
+  // Building structure: 8 floors with 4 apartments plus apartment 03 on the ground floor.
+  const BUILDING_LEVELS = [
+    ...[8, 7, 6, 5, 4, 3, 2, 1].map(floor => ({
+      key: String(floor),
+      label: `${floor}º AND`,
+      units: ["1", "2", "3", "4"].map(suffix => `${floor}${suffix}`),
+    })),
+    { key: 'ground', label: 'TÉRREO', units: ['03'] },
+  ];
+  const unitOptions = BUILDING_LEVELS.flatMap(level =>
+    level.units.map(unit => `Apartamento ${unit}`)
+  );
+  const filteredUnitOptions = unitOptions.filter(option =>
+    option.toLowerCase().includes(unitSearch.trim().toLowerCase())
+  );
 
   // Fetch residents list
   const fetchResidents = async (showSilently = false) => {
@@ -395,7 +412,10 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
         if (resObj) {
           setOwner(resObj.owner || '');
           setPhones(resObj.phones || '');
+          setEmail(resObj.email || '');
           setTenant(resObj.tenant || '');
+          setTenantEmail(resObj.tenantEmail || '');
+          setTenantPhone(resObj.tenantPhone || '');
           setTenantPhoto(resObj.tenantPhoto || null);
           setFamilyMembers(resObj.familyMembers || '');
           setPhoto(resObj.photo || null);
@@ -427,7 +447,10 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       if (resObj) {
         setOwner(resObj.owner || '');
         setPhones(resObj.phones || '');
+        setEmail(resObj.email || '');
         setTenant(resObj.tenant || '');
+        setTenantEmail(resObj.tenantEmail || '');
+        setTenantPhone(resObj.tenantPhone || '');
         setTenantPhoto(resObj.tenantPhoto || null);
         setFamilyMembers(resObj.familyMembers || '');
         setPhoto(resObj.photo || null);
@@ -436,7 +459,10 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
         // Safe default fallback
         setOwner('');
         setPhones('');
+        setEmail('');
         setTenant('');
+        setTenantEmail('');
+        setTenantPhone('');
         setTenantPhoto(null);
         setFamilyMembers('');
         setPhoto(null);
@@ -448,15 +474,24 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   // Handle unit selection
   const handleSelectUnit = (unitNum: string) => {
     setSelectedUnit(unitNum);
+    setUnitSearch(`Apartamento ${unitNum}`);
+    setIsUnitAutocompleteOpen(false);
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+    const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     if (!owner.trim()) {
       newErrors.owner = "O proprietário é um campo obrigatório para controle cadastral.";
     }
     if (!phones.trim()) {
       newErrors.phones = "Informe pelo menos um telefone ou canal de contato rápido.";
+    }
+    if (email.trim() && !isValidEmail(email.trim())) {
+      newErrors.email = "Informe um e-mail válido.";
+    }
+    if (tenantEmail.trim() && !isValidEmail(tenantEmail.trim())) {
+      newErrors.tenantEmail = "Informe um e-mail válido.";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -474,7 +509,10 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
         unit: selectedUnit,
         owner: owner.trim(),
         phones: phones.trim(),
+        email: email.trim() || undefined,
         tenant: tenant.trim() || undefined,
+        tenantEmail: tenantEmail.trim() || undefined,
+        tenantPhone: tenantPhone.trim() || undefined,
         tenantPhoto: tenantPhoto || undefined,
         familyMembers: familyMembers.trim() || undefined,
         photo: photo || undefined
@@ -524,7 +562,10 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       r.unit.toLowerCase().includes(term) ||
       (r.owner && r.owner.toLowerCase().includes(term)) ||
       (r.phones && r.phones.toLowerCase().includes(term)) ||
+      (r.email && r.email.toLowerCase().includes(term)) ||
       (r.tenant && r.tenant.toLowerCase().includes(term)) ||
+      (r.tenantEmail && r.tenantEmail.toLowerCase().includes(term)) ||
+      (r.tenantPhone && r.tenantPhone.toLowerCase().includes(term)) ||
       (r.familyMembers && r.familyMembers.toLowerCase().includes(term))
     );
   });
@@ -542,7 +583,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
             <div className="w-2 h-2 bg-emerald-500 rounded-full shrink-0"></div>
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">Controle de Ocupação</h3>
-              <p className="text-[9px] text-slate-500 font-mono uppercase mt-0.5">Torre Única • 32 Unidades (4 por andar)</p>
+              <p className="text-[9px] text-slate-500 font-mono uppercase mt-0.5">Torre Única • 33 Unidades</p>
             </div>
           </div>
           
@@ -598,21 +639,20 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
               </div>
             ) : (
               <div className="flex flex-col gap-3 font-mono">
-                {FLOORS.map((floorNum) => {
+                {BUILDING_LEVELS.map((level) => {
                   return (
                     <div 
-                      key={floorNum} 
+                      key={level.key}
                       className="grid grid-cols-12 items-center border border-slate-900 bg-slate-950/20 p-2 rounded-sm gap-2 hover:border-slate-800/50 transition"
                     >
                       {/* Floor Indicator Label */}
                       <div className="col-span-2 text-slate-500 text-[10px] font-bold uppercase tracking-wider text-center border-r border-slate-900">
-                        {floorNum}º AND
+                        {level.label}
                       </div>
                       
                       {/* Apartment Units in the floor */}
                       <div className="col-span-10 grid grid-cols-4 gap-2">
-                        {UNITS_PER_FLOOR.map((unitSuffix) => {
-                          const aptNumber = `${floorNum}${unitSuffix}`;
+                        {level.units.map((aptNumber) => {
                           const residentInfo = residents.find(r => r.unit === aptNumber);
                           const status = getResidentStatus(residentInfo);
                           const isSelected = selectedUnit === aptNumber;
@@ -711,12 +751,77 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
 
             <form onSubmit={handleSaveResident} className="p-6 flex flex-col gap-5 text-xs font-mono">
               
-              {/* APARTAMENTO INDICATOR (Read-Only) */}
+              {/* APARTMENT AUTOCOMPLETE */}
               <div>
-                <label className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1.5">Unidade Local (Apto)</label>
-                <div className="w-full bg-slate-950 border border-slate-900 px-3 py-2 text-white font-bold rounded-sm cursor-not-allowed select-none">
-                  Apartamento {selectedUnit} — Bloco Único
+                <label htmlFor="resident-unit-search" className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1.5">
+                  Unidade Local (Apto)
+                </label>
+                <div className="relative">
+                  <Home size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    id="resident-unit-search"
+                    type="text"
+                    value={unitSearch}
+                    onChange={(event) => {
+                      setUnitSearch(event.target.value);
+                      setIsUnitAutocompleteOpen(true);
+                    }}
+                    onFocus={() => setIsUnitAutocompleteOpen(true)}
+                    onBlur={() => window.setTimeout(() => {
+                      setIsUnitAutocompleteOpen(false);
+                      setUnitSearch(`Apartamento ${selectedUnit}`);
+                    }, 120)}
+                    placeholder="Digite o número do apartamento"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={isUnitAutocompleteOpen}
+                    aria-controls="resident-unit-options"
+                    autoComplete="off"
+                    className="w-full bg-slate-950 border border-slate-800 pl-9 pr-3 py-2 text-white font-bold rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-700"
+                  />
+
+                  {isUnitAutocompleteOpen && (
+                    <div
+                      id="resident-unit-options"
+                      role="listbox"
+                      className="absolute z-30 mt-1 w-full max-h-52 overflow-y-auto rounded-sm border border-slate-700 bg-slate-950 shadow-xl"
+                    >
+                      {filteredUnitOptions.length > 0 ? (
+                        filteredUnitOptions.map(option => {
+                          const unit = option.replace('Apartamento ', '');
+                          const resident = residents.find(item => item.unit === unit);
+                          return (
+                            <button
+                              key={unit}
+                              type="button"
+                              role="option"
+                              aria-selected={selectedUnit === unit}
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => handleSelectUnit(unit)}
+                              className="flex w-full items-center justify-between border-b border-slate-900 px-3 py-2 text-left text-xs font-mono text-slate-300 transition last:border-b-0 hover:bg-emerald-950/40 hover:text-emerald-400"
+                            >
+                              <span>{option}</span>
+                              <span className={`text-[8px] uppercase ${
+                                getResidentStatus(resident) === 'registered'
+                                  ? 'text-emerald-500'
+                                  : 'text-slate-600'
+                              }`}>
+                                {getResidentStatus(resident) === 'registered' ? 'Cadastrado' : 'Em aberto'}
+                              </span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="px-3 py-2 text-[10px] font-mono text-slate-500">
+                          Nenhuma unidade encontrada.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
+                <p className="mt-1 text-[9px] text-slate-600">
+                  Selecione uma das 33 unidades residenciais do edifício.
+                </p>
               </div>
 
               {/* OWNER (PROPRIETÁRIO) */}
@@ -765,6 +870,28 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                 </div>
               </div>
 
+              {/* RESIDENT EMAIL */}
+              <div>
+                <label className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 flex justify-between">
+                  <span>E-mail do Morador</span>
+                  {errors.email && <span className="text-red-400 text-[8px] font-normal lowercase">{errors.email}</span>}
+                </label>
+                <div className="relative">
+                  <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="morador@exemplo.com"
+                    autoComplete="email"
+                    className={`w-full pl-9 pr-3 py-2 bg-slate-950 border text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-700 ${
+                      errors.email ? 'border-red-500/50' : 'border-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
               {/* TENANT (INQUILINO) */}
               <div>
                 <label className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1.5">
@@ -782,6 +909,47 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                     placeholder="Nome completo do locatário atual"
                     className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-700"
                   />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="block text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1.5">
+                      E-mail do Inquilino
+                    </label>
+                    <div className="relative">
+                      <Mail size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+                      <input
+                        type="email"
+                        name="tenantEmail"
+                        value={tenantEmail}
+                        onChange={(e) => setTenantEmail(e.target.value)}
+                        placeholder="inquilino@exemplo.com"
+                        autoComplete="email"
+                        className={`w-full pl-9 pr-3 py-2 bg-slate-950 border text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-700 ${
+                          errors.tenantEmail ? 'border-red-500/50' : 'border-slate-800'
+                        }`}
+                      />
+                    </div>
+                    {errors.tenantEmail && <p className="text-red-400 text-[8px] mt-1">{errors.tenantEmail}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1.5">
+                      Telefone do Inquilino
+                    </label>
+                    <div className="relative">
+                      <Phone size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+                      <input
+                        type="tel"
+                        name="tenantPhone"
+                        value={tenantPhone}
+                        onChange={(e) => setTenantPhone(e.target.value)}
+                        placeholder="(DDD) XXXXX-XXXX"
+                        autoComplete="tel"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 transition placeholder-slate-700"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-3 border border-slate-900 bg-slate-950/40 p-3 rounded-sm">

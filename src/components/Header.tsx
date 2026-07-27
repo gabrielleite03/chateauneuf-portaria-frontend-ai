@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, GitCommitHorizontal, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Clock, GitCommitHorizontal, RefreshCw } from 'lucide-react';
 import { AppVersion, SyncStatus } from '../types';
 
 interface HeaderProps {
@@ -27,17 +27,11 @@ export default function Header({ status, onSync, isSyncing, frontendVersion, bac
     <header id="app-header" className="bg-[#0a0d14] text-slate-100 border-b border-slate-800/60 shadow-[0_4px_20px_rgba(0,0,0,0.4)] px-6 py-4 shrink-0">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-            <ShieldCheck size={24} id="icon-shield-check" className="text-emerald-400" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-white uppercase leading-none">
-              Portaria Chateauneuf <span className="text-slate-500 font-normal">| MVP</span>
-            </h1>
-            <p className="text-[10px] text-slate-400 font-mono tracking-widest uppercase mt-1">
-              Frontend conectado exclusivamente ao backend Go
-            </p>
-          </div>
+          <img
+            src="/logo-chateauneuf.png"
+            alt="Conselho do Condomínio Edifício Chateauneuf"
+            className="w-24 h-24 rounded-full bg-white object-contain"
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-xs">

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { ScheduledService } from '../types';
 import { createVisit } from '../api';
+import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
 import { cameraAccessErrorMessage } from '../utils/camera';
 
 interface ScheduledServicesModuleProps {
@@ -420,11 +421,10 @@ export default function ScheduledServicesModule({ showToast, isInternetOnline }:
                     <Building2 size={11} className="text-emerald-500" />
                     <span>Apto / Destino *</span>
                   </label>
-                  <input
-                    type="text"
-                    placeholder="EX: 11"
+                  <RegisteredUnitAutocomplete
+                    placeholder="DIGITE OU SELECIONE"
                     value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
+                    onChange={setUnit}
                     className={`w-full bg-slate-950 border ${formErrors.unit ? 'border-red-500/50 text-red-400' : 'border-slate-800 text-slate-200'} rounded p-2 focus:outline-none focus:border-emerald-500 transition text-[11px]`}
                   />
                   {formErrors.unit && <p className="text-[9px] text-red-500 uppercase mt-1 font-bold">{formErrors.unit}</p>}

@@ -21,6 +21,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { KeyRecord } from '../types';
+import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
 
 interface KeyControlModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
@@ -263,11 +264,9 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
                   <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-500">
                     <Building2 size={13} />
                   </span>
-                  <input
-                    type="text"
-                    placeholder="12"
+                  <RegisteredUnitAutocomplete
                     value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
+                    onChange={setUnit}
                     className={`w-full pl-8 pr-2 py-2 bg-slate-950 border text-slate-100 rounded-sm text-xs text-center focus:outline-none focus:border-amber-500/50 transition font-mono ${
                       formErrors.unit ? 'border-red-500' : 'border-slate-800'
                     }`}

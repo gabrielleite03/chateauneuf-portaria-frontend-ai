@@ -22,7 +22,10 @@ export interface Resident {
   unit: string; // APTO, e.g. "101"
   owner: string; // PROPRIETARIO
   phones: string; // TELEFONES
+  email?: string; // E-MAIL DO MORADOR/PROPRIETARIO
   tenant?: string; // INQUILINO
+  tenantEmail?: string; // E-MAIL DO INQUILINO
+  tenantPhone?: string; // TELEFONE DO INQUILINO
   tenantPhoto?: string; // Base64 image do inquilino
   familyMembers?: string; // FAMILIARES
   photo?: string; // Base64 image

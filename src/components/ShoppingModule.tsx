@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, CheckCircle2, Landmark, PackagePlus, ReceiptText, Trash2, Upload, UserRound } from 'lucide-react';
 import { ShoppingDelivery } from '../types';
 import { cameraAccessErrorMessage } from '../utils/camera';
+import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
 
 interface ShoppingModuleProps {
   onRegister: (data: Omit<ShoppingDelivery, 'id' | 'receivedAt' | 'withdrawnAt' | 'status' | 'syncStatus'>) => Promise<ShoppingDelivery | null>;
@@ -28,7 +29,6 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const quickUnits = ['Apto 11', 'Apto 22', 'Apto 33', 'Apto 44', 'Apto 55', 'Apto 66', 'Apto 77', 'Apto 84'];
   const quickStores = ['Mercado Livre', 'Amazon', 'Shopee', 'iFood', 'Correios', 'Transportadora'];
 
   useEffect(() => {
@@ -223,23 +223,22 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
               </label>
               <div className="relative">
                 <Landmark size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
-                <input
+                <RegisteredUnitAutocomplete
                   id="input-shopping-unit"
-                  name="unit"
+                  valueFormat="label"
                   value={formData.unit}
-                  onChange={handleInputChange}
-                  placeholder="Ex: Apto 32"
+                  onChange={unit => {
+                    setFormData(current => ({ ...current, unit }));
+                    setErrors(current => {
+                      const next = { ...current };
+                      delete next.unit;
+                      return next;
+                    });
+                  }}
                   className={`w-full bg-slate-950 border text-slate-100 pl-9 pr-3 py-2.5 text-xs rounded-sm focus:border-emerald-500/50 outline-none transition placeholder-slate-600 ${errors.unit ? 'border-red-900' : 'border-slate-800'}`}
                 />
               </div>
               {errors.unit && <span className="text-[10px] text-red-400 font-mono mt-1 block">{errors.unit}</span>}
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {quickUnits.map(unit => (
-                  <button key={unit} type="button" onClick={() => autoFillField('unit', unit)} className="text-[9px] font-mono bg-slate-950 border border-slate-800/60 hover:bg-slate-900 text-slate-400 hover:text-emerald-400 transition px-1.5 py-0.5 rounded-sm cursor-pointer">
-                    + {unit}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <div>
