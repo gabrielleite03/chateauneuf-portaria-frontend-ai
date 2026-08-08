@@ -9,3 +9,7 @@ coverage
 *.err
 secrets
 docker-data
+data
+photos
+certs
+runtime-certs
