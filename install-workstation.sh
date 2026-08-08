@@ -293,6 +293,14 @@ if [ -f "$SOURCE_PACKAGE_PATH" ]; then
   (cd "$INSTALL_DIR" && extract_package "$PACKAGE_NAME")
   copy_distribution_file "docker-compose.yml"
   copy_distribution_file ".env.docker.example"
+  if [ -f "$SOURCE_DIR/secrets/google-service-account.json" ]; then
+    mkdir -p "$INSTALL_DIR/secrets"
+    source_credentials=$(readlink -f "$SOURCE_DIR/secrets/google-service-account.json" 2>/dev/null || echo "$SOURCE_DIR/secrets/google-service-account.json")
+    target_credentials=$(readlink -f "$INSTALL_DIR/secrets/google-service-account.json" 2>/dev/null || echo "$INSTALL_DIR/secrets/google-service-account.json")
+    if [ "$source_credentials" != "$target_credentials" ]; then
+      cp "$SOURCE_DIR/secrets/google-service-account.json" "$INSTALL_DIR/secrets/google-service-account.json"
+    fi
+  fi
 elif [ "$SOURCE_IS_EXTRACTED" = "true" ]; then
   cp -R "$SOURCE_DIR/scripts" "$INSTALL_DIR/"
   cp -R "$SOURCE_DIR/secrets" "$INSTALL_DIR/"

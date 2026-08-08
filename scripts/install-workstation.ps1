@@ -147,6 +147,15 @@ $sourceIsExtractedPackage = (
 
 if ($sourceHasPackage) {
   Copy-DistributionFile -FileName $packageName
+  $sourceCredentials = Join-Path $SourceDir "secrets\google-service-account.json"
+  if (Test-Path -LiteralPath $sourceCredentials -PathType Leaf) {
+    $targetSecretsDir = Join-Path $InstallDir "secrets"
+    New-Item -ItemType Directory -Force -Path $targetSecretsDir | Out-Null
+    $targetCredentials = Join-Path $targetSecretsDir "google-service-account.json"
+    if ((Resolve-Path -LiteralPath $sourceCredentials).Path -ne $targetCredentials) {
+      Copy-Item -LiteralPath $sourceCredentials -Destination $targetCredentials -Force
+    }
+  }
 } elseif ($sourceIsExtractedPackage) {
   Copy-Item -LiteralPath (Join-Path $SourceDir "scripts") -Destination $InstallDir -Recurse -Force
   Copy-Item -LiteralPath (Join-Path $SourceDir "secrets") -Destination $InstallDir -Recurse -Force
