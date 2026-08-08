@@ -6,6 +6,8 @@ cd /d "%~dp0"
 set "GOOGLE_SHEET_ID=ID_DA_SUA_PLANILHA"
 set "INSTALL_SCRIPT=%~dp0install-workstation.ps1"
 set "INSTALL_DIR=C:\ChateauneufPortaria"
+set "FRONTEND_IMAGE=gabrielleite03/chateauneuf-portaria-frontend:2026.08.08.2"
+set "BACKEND_IMAGE=gabrielleite03/chateauneuf-portaria-backend:2026.08.08.2"
 
 if not exist "%INSTALL_SCRIPT%" (
   set "INSTALL_SCRIPT=%~dp0scripts\install-workstation.ps1"
@@ -17,6 +19,8 @@ echo ============================================================
 echo Pasta do instalador: %~dp0
 echo Script de instalacao: %INSTALL_SCRIPT%
 echo Pasta alvo: %INSTALL_DIR%
+echo Frontend: %FRONTEND_IMAGE%
+echo Backend: %BACKEND_IMAGE%
 echo.
 
 if "%GOOGLE_SHEET_ID%"=="ID_DA_SUA_PLANILHA" (
@@ -32,7 +36,7 @@ if not exist "%INSTALL_SCRIPT%" (
 
 echo Iniciando instalacao. Todo o log do PowerShell ficara visivel abaixo.
 echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALL_SCRIPT%" -GoogleSheetId "%GOOGLE_SHEET_ID%" -InstallDir "%INSTALL_DIR%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALL_SCRIPT%" -GoogleSheetId "%GOOGLE_SHEET_ID%" -InstallDir "%INSTALL_DIR%" -FrontendImage "%FRONTEND_IMAGE%" -BackendImage "%BACKEND_IMAGE%"
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.

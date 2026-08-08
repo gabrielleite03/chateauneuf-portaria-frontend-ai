@@ -2,6 +2,8 @@
 set -eu
 
 GOOGLE_SHEET_ID="ID_DA_SUA_PLANILHA"
+FRONTEND_IMAGE="gabrielleite03/chateauneuf-portaria-frontend:2026.08.08.2"
+BACKEND_IMAGE="gabrielleite03/chateauneuf-portaria-backend:2026.08.08.2"
 
 if [ "$GOOGLE_SHEET_ID" = "ID_DA_SUA_PLANILHA" ]; then
   echo "Edite este arquivo e troque ID_DA_SUA_PLANILHA pelo ID real da planilha." >&2
@@ -22,4 +24,7 @@ if [ ! -f "$INSTALL_SCRIPT" ]; then
 fi
 
 chmod +x "$INSTALL_SCRIPT" 2>/dev/null || true
-exec "$INSTALL_SCRIPT" --google-sheet-id "$GOOGLE_SHEET_ID"
+exec "$INSTALL_SCRIPT" \
+  --google-sheet-id "$GOOGLE_SHEET_ID" \
+  --frontend-image "$FRONTEND_IMAGE" \
+  --backend-image "$BACKEND_IMAGE"
