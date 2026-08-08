@@ -254,6 +254,12 @@ export default function ScheduledServicesModule({ showToast, isInternetOnline }:
             showToast("Entrada integrada automaticamente no Painel de Controle Principal!", "success");
           } catch (err) {
             console.error("Failed auto integration of entry", err);
+            showToast(
+              err instanceof Error
+                ? err.message
+                : "Nao foi possivel integrar a entrada. Verifique se o visitante ja possui entrada ativa.",
+              "warning",
+            );
           }
 
         } else {

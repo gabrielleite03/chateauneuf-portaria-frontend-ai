@@ -25,6 +25,10 @@ function getTimeTheme(date = new Date()): ThemeMode {
   return hour >= 7 && hour < 19 ? 'light' : 'dark';
 }
 
+function normalizeDocument(value: string) {
+  return value.toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]/g, '');
+}
+
 export default function App() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [shoppingDeliveries, setShoppingDeliveries] = useState<ShoppingDelivery[]>([]);
@@ -93,6 +97,18 @@ export default function App() {
   }, [themeMode]);
 
   const handleRegisterEntrance = async (newData: Omit<Visit, 'id' | 'entryTime' | 'syncStatus'>) => {
+    const normalizedDocument = normalizeDocument(newData.document);
+    const activeVisit = visits.find(visit =>
+      !visit.exitTime && normalizeDocument(visit.document) === normalizedDocument
+    );
+    if (activeVisit) {
+      showToast(
+        `${activeVisit.name} ja possui uma entrada ativa. Registre a saida antes de uma nova entrada.`,
+        'warning',
+      );
+      return null;
+    }
+
     try {
       const createdVisit = await createVisit(newData);
       setVisits(prev => [createdVisit, ...prev]);
@@ -108,7 +124,10 @@ export default function App() {
       return createdVisit;
     } catch (err) {
       console.error(err);
-      showToast('Nao foi possivel salvar a entrada no backend Go.', 'error');
+      showToast(
+        err instanceof Error ? err.message : 'Nao foi possivel salvar a entrada no backend Go.',
+        'error',
+      );
       return null;
     }
   };
