@@ -10,7 +10,8 @@ interface ReservationsModuleProps {
 }
 
 const COMMON_AREAS: CommonAreaReservation['area'][] = ['Churrasqueira', 'Salão de festas'];
-const CANCELLATION_LIMIT_DAYS = 2;
+const MAX_RESERVATION_ADVANCE_DAYS = 30;
+const CANCELLATION_LIMIT_DAYS = 7;
 
 function startOfLocalDay(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), value.getDate());
@@ -26,11 +27,30 @@ function daysUntilReservation(value: string) {
   return Math.ceil((reservationDay.getTime() - today.getTime()) / 86_400_000);
 }
 
+function formatDateInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function reservationDateBounds() {
+  const min = startOfLocalDay(new Date());
+  const max = new Date(min);
+  max.setDate(max.getDate() + MAX_RESERVATION_ADVANCE_DAYS);
+  return { min: formatDateInput(min), max: formatDateInput(max) };
+}
+
 function canCancelReservation(reservation: CommonAreaReservation) {
   return daysUntilReservation(reservation.reservationDate) >= CANCELLATION_LIMIT_DAYS;
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export default function ReservationsModule({ showToast, isInternetOnline }: ReservationsModuleProps) {
+  const dateBounds = reservationDateBounds();
   const [reservations, setReservations] = useState<CommonAreaReservation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +63,7 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     area: 'Churrasqueira' as CommonAreaReservation['area'],
     residentName: '',
     unit: '',
-    reservationDate: new Date().toISOString().split('T')[0],
+    reservationDate: dateBounds.min,
     startTime: '09:00',
     endTime: '18:00',
     guests: '',
@@ -81,13 +101,18 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     });
   }, [areaFilter, reservations, searchTerm, statusFilter]);
 
-  const activeReservationOnSelectedDate = useMemo(() => {
+  const conflictingReservation = useMemo(() => {
     if (!formData.reservationDate) return undefined;
+    const selectedUnit = formData.unit.trim().toLocaleLowerCase('pt-BR');
     return reservations.find(reservation =>
       reservation.status === 'reservada' &&
-      reservation.reservationDate === formData.reservationDate
+      reservation.reservationDate === formData.reservationDate &&
+      (
+        reservation.area === formData.area ||
+        (selectedUnit !== '' && reservation.unit.trim().toLocaleLowerCase('pt-BR') === selectedUnit)
+      )
     );
-  }, [formData.reservationDate, reservations]);
+  }, [formData.area, formData.reservationDate, formData.unit, reservations]);
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
@@ -95,13 +120,22 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     if (!formData.residentName.trim()) nextErrors.residentName = 'Informe o morador responsavel.';
     if (!formData.unit.trim()) nextErrors.unit = 'Informe o apartamento.';
     if (!formData.reservationDate) nextErrors.reservationDate = 'Informe a data da reserva.';
+    if (formData.reservationDate) {
+      const days = daysUntilReservation(formData.reservationDate);
+      if (days < 0) nextErrors.reservationDate = 'A data da reserva nao pode estar no passado.';
+      if (days > MAX_RESERVATION_ADVANCE_DAYS) {
+        nextErrors.reservationDate = 'A reserva so pode ser feita com ate 30 dias de antecedencia.';
+      }
+    }
     if (!formData.startTime) nextErrors.startTime = 'Informe o horario inicial.';
     if (!formData.endTime) nextErrors.endTime = 'Informe o horario final.';
     if (formData.startTime && formData.endTime && formData.startTime >= formData.endTime) {
       nextErrors.endTime = 'Horario final deve ser maior que o inicial.';
     }
-    if (activeReservationOnSelectedDate) {
-      nextErrors.reservationDate = `Ja existe reserva ativa para ${activeReservationOnSelectedDate.area} nesta data.`;
+    if (conflictingReservation) {
+      nextErrors.reservationDate = conflictingReservation.area === formData.area
+        ? `${formData.area} ja esta reservada nesta data.`
+        : `O Apto ${formData.unit.trim()} ja reservou ${conflictingReservation.area} nesta data.`;
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -136,7 +170,7 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
       );
     } catch (err) {
       console.error(err);
-      showToast('Nao foi possivel cadastrar a reserva.', 'error');
+      showToast(errorMessage(err, 'Nao foi possivel cadastrar a reserva.'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -144,7 +178,7 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
 
   const handleStatus = async (reservation: CommonAreaReservation, status: CommonAreaReservation['status']) => {
     if (status === 'cancelada' && !canCancelReservation(reservation)) {
-      showToast('A reserva so pode ser cancelada ate 2 dias antes da data do evento.', 'warning');
+      showToast('A reserva so pode ser cancelada ate 7 dias antes da data do evento.', 'warning');
       return;
     }
 
@@ -154,7 +188,7 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
       showToast(status === 'cancelada' ? 'Reserva cancelada.' : 'Status da reserva atualizado.', 'success');
     } catch (err) {
       console.error(err);
-      showToast('Nao foi possivel atualizar a reserva.', 'error');
+      showToast(errorMessage(err, 'Nao foi possivel atualizar a reserva.'), 'error');
     }
   };
 
@@ -166,7 +200,7 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
       showToast('Reserva excluida.', 'success');
     } catch (err) {
       console.error(err);
-      showToast('Nao foi possivel excluir a reserva.', 'error');
+      showToast(errorMessage(err, 'Nao foi possivel excluir a reserva.'), 'error');
     }
   };
 
@@ -182,6 +216,16 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
               <h2 className="text-sm text-emerald-400 font-bold uppercase tracking-widest">Nova Reserva</h2>
               <p className="text-[9px] text-slate-500 font-mono uppercase mt-0.5">Areas comuns do condominio</p>
             </div>
+          </div>
+
+          <div className="mx-5 mt-5 border border-emerald-500/20 bg-emerald-950/15 rounded-sm p-3 font-mono">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-400 mb-2">Regras de reserva</p>
+            <ul className="space-y-1 text-[10px] leading-relaxed text-slate-400 list-disc pl-4">
+              <li>Cada area aceita somente um apartamento por data.</li>
+              <li>Cada apartamento pode reservar somente uma das areas na mesma data.</li>
+              <li>A data deve estar entre hoje e 30 dias.</li>
+              <li>O cancelamento exige no minimo 7 dias de antecedencia.</li>
+            </ul>
           </div>
 
           <form onSubmit={handleSubmit} className="p-5 space-y-4 font-mono">
@@ -231,12 +275,19 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
               <input
                 type="date"
                 value={formData.reservationDate}
+                min={dateBounds.min}
+                max={dateBounds.max}
                 onChange={(e) => setFormData(prev => ({ ...prev, reservationDate: e.target.value }))}
                 className={`w-full bg-slate-950 border ${errors.reservationDate ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-sm px-3 py-2.5 text-sm outline-none focus:border-emerald-500/60`}
               />
-              {!errors.reservationDate && activeReservationOnSelectedDate && (
+              {!errors.reservationDate && !conflictingReservation && (
+                <p className="text-[9px] text-slate-500 font-mono uppercase mt-1">
+                  Uma reserva por area e uma unica area por apartamento na mesma data.
+                </p>
+              )}
+              {!errors.reservationDate && conflictingReservation && (
                 <p className="text-[9px] text-amber-400 font-mono uppercase mt-1">
-                  Data ocupada por {activeReservationOnSelectedDate.area} do Apto {activeReservationOnSelectedDate.unit}.
+                  Conflito com {conflictingReservation.area} do Apto {conflictingReservation.unit}.
                 </p>
               )}
             </FieldError>
@@ -427,16 +478,18 @@ const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onStatus
               <button
                 onClick={() => onStatus(reservation, 'cancelada')}
                 disabled={!canCancel}
-                title={canCancel ? 'Cancelar reserva' : 'Cancelamento permitido somente ate 2 dias antes do evento'}
+                title={canCancel ? 'Cancelar reserva' : 'Cancelamento permitido somente ate 7 dias antes do evento'}
                 className="px-3 py-1.5 bg-red-950/35 hover:bg-red-950 disabled:bg-slate-950 disabled:text-slate-600 disabled:border-slate-800 border border-red-500/25 text-red-400 rounded-sm text-[9px] uppercase font-bold tracking-wider cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
               >
                 <Ban size={11} /> Cancelar
               </button>
             </>
           )}
-          <button onClick={() => onDelete(reservation)} className="p-1.5 bg-slate-950 hover:bg-red-950/50 border border-slate-800 hover:border-red-500/30 text-slate-500 hover:text-red-400 rounded-sm cursor-pointer" title="Excluir reserva">
-            <Trash2 size={13} />
-          </button>
+          {reservation.status !== 'reservada' && (
+            <button onClick={() => onDelete(reservation)} className="p-1.5 bg-slate-950 hover:bg-red-950/50 border border-slate-800 hover:border-red-500/30 text-slate-500 hover:text-red-400 rounded-sm cursor-pointer" title="Excluir reserva">
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       </div>
     </div>
