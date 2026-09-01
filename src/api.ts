@@ -25,6 +25,8 @@ type CreateVisitInput = Omit<Visit, 'id' | 'entryTime' | 'syncStatus'>;
 type CreateShoppingInput = Omit<ShoppingDelivery, 'id' | 'receivedAt' | 'withdrawnAt' | 'status' | 'syncStatus'>;
 type CreateReservationInput = Omit<CommonAreaReservation, 'id' | 'status' | 'syncStatus' | 'createdAt' | 'updatedAt'>;
 
+export type InternetAccount = { id:string; account_type:'resident'|'employee'; name?:string; apartment:string; username:string; enabled:boolean; expires_at:string; max_connections:number; download_kbps:number; upload_kbps:number; active_connections:number; generated_password?:string };
+
 const syncStatusMap: Record<BackendAccessLog['sync_status'], Visit['syncStatus']> = {
   PENDENTE_SYNC: 'pending',
   SINCRONIZADO: 'synced',
@@ -175,3 +177,10 @@ export async function deleteReservation(id: string): Promise<void> {
     body: JSON.stringify({ id }),
   });
 }
+
+export const fetchInternetAccounts = () => request<InternetAccount[]>('/api/internet-accounts');
+export const createInternetAccount = (apartment:string) => request<InternetAccount>('/api/internet-accounts',{method:'POST',body:JSON.stringify({apartment})});
+export const createEmployeeInternetAccount = (name:string,username:string,password:string,enrollmentPassword:string) => request<InternetAccount>('/api/internet-accounts/employees',{method:'POST',body:JSON.stringify({name,username,password,enrollment_password:enrollmentPassword})});
+export const updateInternetAccount = (account:InternetAccount) => request<InternetAccount>(`/api/internet-accounts/${account.id}`,{method:'PUT',body:JSON.stringify({apartment:account.apartment,username:account.username,enabled:account.enabled,expires_at:account.expires_at})});
+export const changeInternetPassword = (id:string) => request<{generated_password:string}>(`/api/internet-accounts/${id}/password`,{method:'POST'});
+export async function deleteInternetAccount(id:string):Promise<void>{const response=await fetch(`/api/internet-accounts/${id}`,{method:'DELETE'});if(!response.ok)throw new Error(`Backend Go retornou HTTP ${response.status}`)}

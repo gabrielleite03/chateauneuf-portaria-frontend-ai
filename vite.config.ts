@@ -18,6 +18,14 @@ export default defineConfig(() => {
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
       proxy: {
+        '/api/internet-accounts': {
+          target: process.env.VITE_AUTH_BACKEND_URL || 'http://localhost:8082',
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/api\/internet-accounts/, '/admin/internet-accounts'),
+          headers: process.env.AUTH_ADMIN_TOKEN
+            ? {Authorization: `Bearer ${process.env.AUTH_ADMIN_TOKEN}`}
+            : undefined,
+        },
         '/api': {
           target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
           changeOrigin: true,

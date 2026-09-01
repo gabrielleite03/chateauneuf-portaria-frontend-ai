@@ -7,6 +7,9 @@ Frontend local para controle de acesso da portaria.
 - Aplicacao Vite + React em `src`.
 - Backend local oficial em `D:\Projects\Chateauneuf\chateauneuf-portaria-backend`.
 - O frontend chama exclusivamente a API Go via `/api`.
+- A aba `Internet` usa `/api/internet-accounts`. O backend da portaria deve
+  encaminhar essas rotas para `/admin/internet-accounts` do `chateauneuf-auth`,
+  adicionando `ADMIN_API_TOKEN` no servidor sem expor o token ao navegador.
 - O mock Express `server.ts` nao faz parte do fluxo validado.
 
 ## Rodar localmente

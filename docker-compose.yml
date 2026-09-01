@@ -1,4 +1,28 @@
 services:
+  network-auth-service:
+    image: ${AUTH_IMAGE:-gabrielleite03/chateauneuf-auth:2026.09.01.1}
+    build:
+      context: ../chateauneuf-auth
+      dockerfile: Dockerfile
+    environment:
+      APP_PORT: 8080
+      APP_ENV: production
+      OMADA_MOCK: ${OMADA_MOCK:-false}
+      OMADA_BASE_URL: ${OMADA_BASE_URL:-}
+      OMADA_USERNAME: ${OMADA_USERNAME:-}
+      OMADA_PASSWORD: ${OMADA_PASSWORD:-}
+      OMADA_SITE: ${OMADA_SITE:-Chateauneuf}
+      OMADA_CONTROLLER_ID: ${OMADA_CONTROLLER_ID:-}
+      OMADA_TLS_INSECURE: ${OMADA_TLS_INSECURE:-false}
+      OMADA_REVOCATION_PATH: ${OMADA_REVOCATION_PATH:-}
+      ADMIN_API_TOKEN: ${AUTH_ADMIN_TOKEN:?AUTH_ADMIN_TOKEN obrigatorio}
+      EMPLOYEE_ENROLLMENT_PASSWORD: ${EMPLOYEE_ENROLLMENT_PASSWORD:?EMPLOYEE_ENROLLMENT_PASSWORD obrigatorio}
+      RESIDENTS_API_URL: http://backend:8080/api/residents
+      USERS_FILE: /app/data/users.json
+    volumes:
+      - ${LOCAL_AUTH_DATA_DIR:-./auth-data}:/app/data
+    restart: unless-stopped
+
   backend:
     image: ${BACKEND_IMAGE:-gabrielleite03/chateauneuf-portaria-backend:2026.08.08.2}
     user: "0:0"
@@ -28,15 +52,18 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.08.08.2}
+    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.09.01.1}
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.08.08.2}
+        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.09.01.1}
         GIT_COMMIT: ${FRONTEND_GIT_COMMIT:-unknown}
     depends_on:
       - backend
+      - network-auth-service
+    environment:
+      AUTH_ADMIN_TOKEN: ${AUTH_ADMIN_TOKEN:?AUTH_ADMIN_TOKEN obrigatorio}
     ports:
       - "${FRONTEND_PORT:-8081}:80"
       - "${FRONTEND_HTTPS_PORT:-8443}:443"

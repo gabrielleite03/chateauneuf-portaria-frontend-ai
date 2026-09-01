@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Building2, CalendarDays, CheckCircle2, History, Key, LayoutDashboard, Package, Settings, Sparkles, WifiOff, Wrench } from 'lucide-react';
+import { Building2, CalendarDays, CheckCircle2, History, Key, LayoutDashboard, Package, Settings, Sparkles, Wifi, WifiOff, Wrench } from 'lucide-react';
 
 import { checkoutVisit, createShoppingDelivery, createVisit, fetchBackendVersion, fetchKeyRecords, fetchShoppingDeliveries, fetchSyncStatus, fetchVisits, runSync, withdrawShoppingDelivery } from './api';
 import { AppVersion, KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
@@ -16,8 +16,9 @@ import ScheduledServicesModule from './components/ScheduledServicesModule';
 import ShoppingModule from './components/ShoppingModule';
 import SyncSettings from './components/SyncSettings';
 import ReservationsModule from './components/ReservationsModule';
+import InternetAccessModule from './components/InternetAccessModule';
 
-type Tab = 'control' | 'residents' | 'diaristas' | 'scheduled' | 'reservations' | 'shopping' | 'keys' | 'history' | 'status';
+type Tab = 'control' | 'residents' | 'internet' | 'diaristas' | 'scheduled' | 'reservations' | 'shopping' | 'keys' | 'history' | 'status';
 type ThemeMode = 'light' | 'dark';
 
 function getTimeTheme(date = new Date()): ThemeMode {
@@ -237,6 +238,7 @@ export default function App() {
             <TabButton active={activeTab === 'residents'} onClick={() => setActiveTab('residents')} icon={<Building2 size={14} />}>
               Moradores
             </TabButton>
+            <TabButton active={activeTab === 'internet'} onClick={() => setActiveTab('internet')} icon={<Wifi size={14} />}>Internet</TabButton>
             <TabButton active={activeTab === 'diaristas'} onClick={() => setActiveTab('diaristas')} icon={<Sparkles size={14} />}>
               Diaristas
             </TabButton>
@@ -315,6 +317,7 @@ export default function App() {
             {activeTab === 'residents' && (
               <ResidentsModule showToast={showToast} isInternetOnline={syncStatus.isInternetOnline} />
             )}
+            {activeTab === 'internet' && <InternetAccessModule showToast={showToast} />}
 
             {activeTab === 'diaristas' && (
               <DiaristasModule showToast={showToast} isInternetOnline={syncStatus.isInternetOnline} />
