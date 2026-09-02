@@ -182,5 +182,5 @@ export const fetchInternetAccounts = () => request<InternetAccount[]>('/api/inte
 export const createInternetAccount = (apartment:string) => request<InternetAccount>('/api/internet-accounts',{method:'POST',body:JSON.stringify({apartment})});
 export const createEmployeeInternetAccount = (name:string,username:string,password:string,enrollmentPassword:string) => request<InternetAccount>('/api/internet-accounts/employees',{method:'POST',body:JSON.stringify({name,username,password,enrollment_password:enrollmentPassword})});
 export const updateInternetAccount = (account:InternetAccount) => request<InternetAccount>(`/api/internet-accounts/${account.id}`,{method:'PUT',body:JSON.stringify({apartment:account.apartment,username:account.username,enabled:account.enabled,expires_at:account.expires_at})});
-export const changeInternetPassword = (id:string) => request<{generated_password:string}>(`/api/internet-accounts/${id}/password`,{method:'POST'});
+export const changeInternetPassword = (id:string) => request<{generated_password?:string;email_sent?:boolean}>(`/api/internet-accounts/${id}/password`,{method:'POST'});
 export async function deleteInternetAccount(id:string):Promise<void>{const response=await fetch(`/api/internet-accounts/${id}`,{method:'DELETE'});if(!response.ok)throw new Error(`Backend Go retornou HTTP ${response.status}`)}

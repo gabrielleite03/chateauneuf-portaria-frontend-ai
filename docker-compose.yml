@@ -15,9 +15,15 @@ services:
       OMADA_CONTROLLER_ID: ${OMADA_CONTROLLER_ID:-}
       OMADA_TLS_INSECURE: ${OMADA_TLS_INSECURE:-false}
       OMADA_REVOCATION_PATH: ${OMADA_REVOCATION_PATH:-}
+      OMADA_OPENAPI_CLIENT_ID: ${OMADA_OPENAPI_CLIENT_ID:-}
+      OMADA_OPENAPI_CLIENT_SECRET: ${OMADA_OPENAPI_CLIENT_SECRET:-}
+      OMADA_OPENAPI_OMADAC_ID: ${OMADA_OPENAPI_OMADAC_ID:-}
+      OMADA_SITE_ID: ${OMADA_SITE_ID:-}
       ADMIN_API_TOKEN: ${AUTH_ADMIN_TOKEN:?AUTH_ADMIN_TOKEN obrigatorio}
       EMPLOYEE_ENROLLMENT_PASSWORD: ${EMPLOYEE_ENROLLMENT_PASSWORD:?EMPLOYEE_ENROLLMENT_PASSWORD obrigatorio}
       RESIDENTS_API_URL: http://backend:8080/api/residents
+      RESIDENT_CREDENTIAL_NOTIFICATION_URL: http://backend:8080/internal/residents/internet-credentials
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?INTERNAL_API_TOKEN obrigatorio}
       USERS_FILE: /app/data/users.json
     volumes:
       - ${LOCAL_AUTH_DATA_DIR:-./auth-data}:/app/data
@@ -43,6 +49,12 @@ services:
       GOOGLE_CREDENTIALS_FILE: /run/secrets/google-service-account.json
       PHOTO_STORAGE_DIR: /app/photos
       SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-30}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?INTERNAL_API_TOKEN obrigatorio}
     volumes:
       - ${LOCAL_DATA_DIR:-./data}:/app/data
       - ${LOCAL_PHOTO_DIR:-./photos}:/app/photos

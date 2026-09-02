@@ -17,6 +17,7 @@ import ShoppingModule from './components/ShoppingModule';
 import SyncSettings from './components/SyncSettings';
 import ReservationsModule from './components/ReservationsModule';
 import InternetAccessModule from './components/InternetAccessModule';
+import CameraViewerPanel from './components/CameraViewerPanel';
 
 type Tab = 'control' | 'residents' | 'internet' | 'diaristas' | 'scheduled' | 'reservations' | 'shopping' | 'keys' | 'history' | 'status';
 type ThemeMode = 'light' | 'dark';
@@ -392,6 +393,8 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      <CameraViewerPanel />
     </div>
   );
 }
