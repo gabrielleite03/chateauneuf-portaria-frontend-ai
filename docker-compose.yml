@@ -1,6 +1,6 @@
 services:
   network-auth-service:
-    image: ${AUTH_IMAGE:-gabrielleite03/chateauneuf-auth:2026.09.01.1}
+    image: ${AUTH_IMAGE:-gabrielleite03/chateauneuf-auth:2026.09.02}
     build:
       context: ../chateauneuf-auth
       dockerfile: Dockerfile
@@ -30,13 +30,13 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ${BACKEND_IMAGE:-gabrielleite03/chateauneuf-portaria-backend:2026.08.08.2}
+    image: ${BACKEND_IMAGE:-gabrielleite03/chateauneuf-portaria-backend:2026.09.02}
     user: "0:0"
     build:
       context: ../chateauneuf-portaria-backend
       dockerfile: Dockerfile
       args:
-        APP_VERSION: ${BACKEND_APP_VERSION:-2026.08.08.2}
+        APP_VERSION: ${BACKEND_APP_VERSION:-2026.09.02}
         GIT_COMMIT: ${BACKEND_GIT_COMMIT:-unknown}
     environment:
       HTTP_ADDR: :8080
@@ -63,17 +63,33 @@ services:
       - "${BACKEND_PORT:-18080}:8080"
     restart: unless-stopped
 
+  stream:
+    image: ${STREAM_IMAGE:-gabrielleite03/chateauneuf-stream:2026.09.02.5}
+    environment:
+      SERVER_PORT: :8082
+      VD5116_HOST: ${VD5116_HOST:-192.168.10.101}
+      VD5116_PORT: ${VD5116_PORT:-7625}
+      VD5116_HTTP_PORT: ${VD5116_HTTP_PORT:-7625}
+      VD5116_RTSP_PORT: ${VD5116_RTSP_PORT:-7618}
+      VD5116_USERNAME: ${VD5116_USERNAME:-admin}
+      VD5116_PASSWORD: ${VD5116_PASSWORD:-admin}
+      VD5116_RTSP_URL: ${VD5116_RTSP_URL:-rtsp://admin:admin@192.168.10.101:7618/cam/realmonitor?channel=1&subtype=0}
+    ports:
+      - "${STREAM_PORT:-18082}:8082"
+    restart: unless-stopped
+
   frontend:
-    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.09.01.1}
+    image: ${FRONTEND_IMAGE:-gabrielleite03/chateauneuf-portaria-frontend:2026.09.02.6}
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.09.01.1}
+        APP_VERSION: ${FRONTEND_APP_VERSION:-2026.09.02.6}
         GIT_COMMIT: ${FRONTEND_GIT_COMMIT:-unknown}
     depends_on:
       - backend
       - network-auth-service
+      - stream
     environment:
       AUTH_ADMIN_TOKEN: ${AUTH_ADMIN_TOKEN:?AUTH_ADMIN_TOKEN obrigatorio}
     ports:

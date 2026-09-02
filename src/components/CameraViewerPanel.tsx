@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, ChevronDown, Expand, MonitorPlay, X } from 'lucide-react';
 
 type CameraChannel = {
@@ -7,28 +7,29 @@ type CameraChannel = {
   url: string;
 };
 
-const STREAM_API_BASE = 'http://localhost:18082';
+const STREAM_API_BASE = '/stream-api';
 
 const cameraChannels: CameraChannel[] = [
-  { id: '3', label: 'Rampa', url: `${STREAM_API_BASE}/api/camera/frame?channel=3` },
-  { id: '1', label: 'Lateral Venezas', url: `${STREAM_API_BASE}/api/camera/frame?channel=1` },
-  { id: '2', label: 'Lixeiras', url: `${STREAM_API_BASE}/api/camera/frame?channel=2` },
-  { id: '4', label: 'Portão Serviço', url: `${STREAM_API_BASE}/api/camera/frame?channel=4` },
-  { id: '5', label: 'Calçada', url: `${STREAM_API_BASE}/api/camera/frame?channel=5` },
-  { id: '6', label: 'Portão Social', url: `${STREAM_API_BASE}/api/camera/frame?channel=6` },
-  { id: '7', label: 'Entrada Serviço', url: `${STREAM_API_BASE}/api/camera/frame?channel=7` },
-  { id: '8', label: 'Portão Garagem', url: `${STREAM_API_BASE}/api/camera/frame?channel=8` },
-  { id: '9', label: 'Elevador Serviço', url: `${STREAM_API_BASE}/api/camera/frame?channel=9` },
-  { id: '10', label: 'Hall da Entrada', url: `${STREAM_API_BASE}/api/camera/frame?channel=10` },
-  { id: '11', label: 'Elevador social', url: `${STREAM_API_BASE}/api/camera/frame?channel=11` },
-  { id: '12', label: 'Guarita', url: `${STREAM_API_BASE}/api/camera/frame?channel=12` },
-  { id: '13', label: 'Parquinho', url: `${STREAM_API_BASE}/api/camera/frame?channel=13` },
-  { id: '14', label: 'Piscina', url: `${STREAM_API_BASE}/api/camera/frame?channel=14` },
-  { id: '15', label: 'Garagem S1', url: `${STREAM_API_BASE}/api/camera/frame?channel=15` },
-  { id: '16', label: 'Garagem S2', url: `${STREAM_API_BASE}/api/camera/frame?channel=16` },
+  { id: '3', label: 'Rampa', url: `${STREAM_API_BASE}/api/camera/live?channel=3` },
+  { id: '1', label: 'Lateral Venezas', url: `${STREAM_API_BASE}/api/camera/live?channel=1` },
+  { id: '2', label: 'Lixeiras', url: `${STREAM_API_BASE}/api/camera/live?channel=2` },
+  { id: '4', label: 'Portão Serviço', url: `${STREAM_API_BASE}/api/camera/live?channel=4` },
+  { id: '5', label: 'Calçada', url: `${STREAM_API_BASE}/api/camera/live?channel=5` },
+  { id: '6', label: 'Portão Social', url: `${STREAM_API_BASE}/api/camera/live?channel=6` },
+  { id: '7', label: 'Entrada Serviço', url: `${STREAM_API_BASE}/api/camera/live?channel=7` },
+  { id: '8', label: 'Portão Garagem', url: `${STREAM_API_BASE}/api/camera/live?channel=8` },
+  { id: '9', label: 'Elevador Serviço', url: `${STREAM_API_BASE}/api/camera/live?channel=9` },
+  { id: '10', label: 'Hall da Entrada', url: `${STREAM_API_BASE}/api/camera/live?channel=10` },
+  { id: '11', label: 'Elevador social', url: `${STREAM_API_BASE}/api/camera/live?channel=11` },
+  { id: '12', label: 'Guarita', url: `${STREAM_API_BASE}/api/camera/live?channel=12` },
+  { id: '13', label: 'Parquinho', url: `${STREAM_API_BASE}/api/camera/live?channel=13` },
+  { id: '14', label: 'Piscina', url: `${STREAM_API_BASE}/api/camera/live?channel=14` },
+  { id: '15', label: 'Garagem S1', url: `${STREAM_API_BASE}/api/camera/live?channel=15` },
+  { id: '16', label: 'Garagem S2', url: `${STREAM_API_BASE}/api/camera/live?channel=16` },
 ];
 
 export default function CameraViewerPanel() {
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isChannelMenuOpen, setIsChannelMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -45,45 +46,34 @@ export default function CameraViewerPanel() {
   useEffect(() => {
     if (!isOpen) return;
 
-    let cancelled = false;
-
-    const loadFrame = () => {
-      const nextUrl = `${selectedCamera.url}?ts=${Date.now()}`;
-      const image = new Image();
-
-      image.onload = () => {
-        if (cancelled) return;
-        setDisplaySrc(nextUrl);
-        setHasError(false);
-        setIsLoading(false);
-      };
-
-      image.onerror = () => {
-        if (cancelled) return;
-        setHasError(true);
-        setIsLoading(false);
-      };
-
-      image.src = nextUrl;
-    };
-
-    loadFrame();
-    const timer = window.setInterval(loadFrame, 800);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
+    setIsLoading(true);
+    setHasError(false);
+    setDisplaySrc(`${selectedCamera.url}&ts=${Date.now()}`);
   }, [isOpen, selectedCamera]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === videoContainerRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const handleChannelChange = (channelId: string) => {
     setSelectedChannel(channelId);
     setIsChannelMenuOpen(false);
   };
 
-  const handleToggleFullscreen = () => {
+  const handleToggleFullscreen = async () => {
     if (!displaySrc) return;
-    setIsFullscreen(prev => !prev);
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    await videoContainerRef.current?.requestFullscreen();
   };
 
   return (
@@ -91,7 +81,7 @@ export default function CameraViewerPanel() {
       <button
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-full border border-emerald-500/40 bg-[#0a0d14]/95 px-4 py-3 text-[10px] font-mono uppercase tracking-[0.24em] text-emerald-400 shadow-2xl shadow-emerald-950/30 backdrop-blur-xl transition hover:scale-[1.02] active:scale-95 cursor-pointer"
+        className="fixed bottom-5 left-5 z-50 flex items-center gap-3 rounded-full border border-emerald-500/40 bg-[#0a0d14]/95 px-4 py-3 text-[10px] font-mono uppercase tracking-[0.24em] text-emerald-400 shadow-2xl shadow-emerald-950/30 backdrop-blur-xl transition hover:scale-[1.02] active:scale-95 cursor-pointer"
         aria-label={isOpen ? 'Ocultar câmera' : 'Abrir câmera'}
       >
         <MonitorPlay size={16} className="shrink-0" />
@@ -99,39 +89,21 @@ export default function CameraViewerPanel() {
       </button>
 
       {isOpen && (
-        <div
-          className={
-            isFullscreen
-              ? 'fixed inset-0 z-[60] overflow-hidden bg-slate-950/95 p-2 backdrop-blur-xl sm:p-3'
-              : 'fixed bottom-20 right-0 z-40 w-[min(94vw,620px)] max-w-[calc(100vw-1rem)] overflow-hidden rounded-t-xl border border-slate-200 bg-white/95 text-slate-800 shadow-[0_20px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:right-5 sm:rounded-xl'
-          }
-        >
-          <div className={`flex items-center justify-between border-b border-slate-200 bg-slate-50/90 px-3 py-2.5 sm:px-4 sm:py-3 ${isFullscreen ? 'border-slate-800 bg-slate-900/80 text-white' : ''}`}>
-            <div className={`flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.22em] sm:text-[10px] ${isFullscreen ? 'text-emerald-300' : 'text-emerald-700'}`}>
+        <div className="fixed bottom-20 left-0 z-40 w-[min(94vw,620px)] max-w-[calc(100vw-1rem)] overflow-hidden rounded-t-xl border border-slate-200 bg-white/95 text-slate-800 shadow-[0_20px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:left-5 sm:rounded-xl">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/90 px-3 py-2.5 sm:px-4 sm:py-3">
+            <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.22em] text-emerald-700 sm:text-[10px]">
               <Camera size={14} />
               Visualização
             </div>
             <div className="flex items-center gap-2">
-              {isFullscreen && (
-                <button
-                  type="button"
-                  onClick={handleToggleFullscreen}
-                  className="rounded-md border border-slate-700 bg-slate-900/80 p-1.5 text-slate-200 transition hover:border-slate-500 hover:text-white cursor-pointer"
-                  aria-label="Fechar tela cheia"
-                >
-                  <X size={13} />
-                </button>
-              )}
-              {!isFullscreen && (
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer"
-                  aria-label="Fechar visão da câmera"
-                >
-                  <X size={13} />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer"
+                aria-label="Fechar visão da câmera"
+              >
+                <X size={13} />
+              </button>
             </div>
           </div>
 
@@ -166,7 +138,7 @@ export default function CameraViewerPanel() {
               </div>
 
               {isChannelMenuOpen && (
-                <div className="absolute left-0 right-0 top-[calc(100%+0.55rem)] z-10 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.12)] ring-1 ring-slate-100">
+                <div className="absolute left-0 right-0 top-[calc(100%+0.55rem)] z-30 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.12)] ring-1 ring-slate-100">
                   {cameraChannels.map(channel => {
                     const isSelected = selectedChannel === channel.id;
 
@@ -190,26 +162,44 @@ export default function CameraViewerPanel() {
               )}
             </div>
 
-            <div className={`overflow-hidden rounded-lg border ${isFullscreen ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-100'}`}>
+            <div
+              ref={videoContainerRef}
+              className={`relative overflow-hidden bg-slate-950 ${isFullscreen ? 'h-screen w-screen' : 'h-[360px] rounded-lg border border-slate-200 sm:h-[420px]'}`}
+            >
+              {isFullscreen && (
+                <button
+                  type="button"
+                  onClick={handleToggleFullscreen}
+                  className="absolute right-3 top-3 z-20 rounded-md border border-slate-700 bg-slate-900/80 p-2 text-slate-200 transition hover:border-slate-500 hover:text-white cursor-pointer"
+                  aria-label="Sair da tela cheia"
+                >
+                  <X size={18} />
+                </button>
+              )}
               {isLoading && (
-                <div className={`flex items-center justify-center text-[10px] font-mono uppercase tracking-[0.2em] ${isFullscreen ? 'h-[calc(100vh-120px)] bg-slate-900 text-slate-400' : 'h-[360px] bg-slate-100 text-slate-500 sm:h-[420px]'}`}>
+                <div className={`absolute inset-0 z-10 flex items-center justify-center text-[10px] font-mono uppercase tracking-[0.2em] ${isFullscreen ? 'bg-slate-900 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
                   Carregando...
                 </div>
               )}
 
               {!isLoading && hasError && (
-                <div className={`flex flex-col items-center justify-center gap-2 px-4 text-center ${isFullscreen ? 'h-[calc(100vh-120px)] bg-slate-900 text-slate-200' : 'h-[360px] bg-slate-100 text-slate-700 sm:h-[420px]'}`}>
+                <div className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 px-4 text-center ${isFullscreen ? 'bg-slate-900 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
                   <Camera size={24} className="text-amber-500" />
                   <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-600">Câmera indisponível</p>
                   <p className={`text-xs ${isFullscreen ? 'text-slate-300' : 'text-slate-600'}`}>O serviço de stream não respondeu para {selectedCamera.label}.</p>
                 </div>
               )}
 
-              {!isLoading && !hasError && displaySrc && (
+              {!hasError && displaySrc && (
                 <img
                   src={displaySrc}
                   alt={selectedCamera.label}
-                  className={`${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-[360px] sm:h-[420px]'} w-full object-contain bg-slate-950`}
+                  onLoad={() => setIsLoading(false)}
+                  onError={() => {
+                    setIsLoading(false);
+                    setHasError(true);
+                  }}
+                  className="h-full w-full bg-slate-950 object-contain"
                 />
               )}
             </div>
