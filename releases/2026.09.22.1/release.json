@@ -1,0 +1,16 @@
+{
+    "version":  "2026.09.22.1",
+    "frontend":  {
+                     "repository":  "https://github.com/gabrielleite03/chateauneuf-portaria-frontend-ai",
+                     "commit":  "6fa79ea",
+                     "image":  "gabrielleite03/chateauneuf-portaria-frontend:2026.09.22.1",
+                     "digest":  "sha256:74694edfcaa208e9cf9f9c5fbdd8c2a4509a586895fdd964f02ba17e61def46e"
+                 },
+    "backend":  {
+                    "repository":  "https://github.com/gabrielleite03/chateauneuf-portaria-backend",
+                    "commit":  "2e1d33f",
+                    "image":  "gabrielleite03/chateauneuf-portaria-backend:2026.09.22.1",
+                    "digest":  "sha256:78a86ae6f6ec03eee49b641c9ad6165afa1fa006d7a8a0d6426d747811db092c"
+                },
+    "tag":  "v2026.09.22.1"
+}

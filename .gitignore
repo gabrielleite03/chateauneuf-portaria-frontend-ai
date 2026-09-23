@@ -14,3 +14,13 @@ docker-setup-package/
 photos/
 *.zip
 project.md
+
+# Local database files and deployment artifacts (manifests live in releases/).
+/data/
+*.db
+*.db-shm
+*.db-wal
+*.tar
+*.tar.gz
+deployment-report.json
+__pycache__/
