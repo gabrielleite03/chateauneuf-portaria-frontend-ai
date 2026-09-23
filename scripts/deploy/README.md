@@ -8,6 +8,9 @@ Antes do deploy, publique os commits e imagens e registre no manifesto a versao,
 os commits, as tags das imagens e seus digests completos. Baixe ambas as imagens
 no servidor com `docker pull <imagem>:<versao>`.
 
+O manifesto pode incluir `checks.frontend_markers` (textos esperados no bundle)
+e `checks.resident_vehicles: true` para validar a API de veiculos de cada apartamento.
+
 Confira o ambiente sem alterar arquivos ou containers:
 
 ```sh

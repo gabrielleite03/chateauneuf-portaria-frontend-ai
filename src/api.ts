@@ -179,6 +179,14 @@ export async function fetchReservations(): Promise<CommonAreaReservation[]> {
   return request<CommonAreaReservation[]>('/api/reservations');
 }
 
+export type ResidentVehicle = { id: string; unit: string; plate: string; brand: string; model: string; color: string };
+export type ResidentVehicleInput = Pick<ResidentVehicle, 'plate' | 'brand' | 'model' | 'color'>;
+const vehiclePath = (unit: string) => `/api/residents/${encodeURIComponent(unit)}/vehicles`;
+export const fetchResidentVehicles = (unit: string) => request<ResidentVehicle[]>(vehiclePath(unit));
+export const createResidentVehicle = (unit: string, input: ResidentVehicleInput) => request<ResidentVehicle>(vehiclePath(unit), { method: 'POST', body: JSON.stringify(input) });
+export const updateResidentVehicle = (unit: string, id: string, input: ResidentVehicleInput) => request<ResidentVehicle>(`${vehiclePath(unit)}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(input) });
+export const deleteResidentVehicle = (unit: string, id: string) => request<{ status: string }>(`${vehiclePath(unit)}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+
 export type ReservationGuest = { id: string; name: string; document: string; confirmed: boolean };
 export const fetchReservationGuests = (id: string) => request<ReservationGuest[]>(`/api/reservations/${encodeURIComponent(id)}/guests`);
 export const addReservationGuest = (id: string, name: string, document: string) => request<ReservationGuest>(`/api/reservations/${encodeURIComponent(id)}/guests`, { method: 'POST', body: JSON.stringify({ name, document }) });

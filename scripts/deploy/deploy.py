@@ -12,6 +12,7 @@ import sqlite3
 import subprocess
 import time
 import urllib.request
+import urllib.parse
 
 
 def main():
@@ -115,6 +116,8 @@ def main():
                 script = re.search(r'src="(/assets/[^\"]+\.js)"', html).group(1)
                 bundle = fetch(script)
                 assert VERSION in bundle and manifest['frontend']['commit'] in bundle and 'active-visits-heading' in bundle and 'active-deliveries-heading' in bundle and 'Lista de convidados' in bundle
+                for marker in manifest.get('checks', {}).get('frontend_markers', []):
+                    assert marker in bundle, 'Missing frontend feature: ' + marker
                 break
             except Exception:
                 if time.monotonic() > deadline:
@@ -155,10 +158,20 @@ def main():
             guests = json.loads(fetch('/api/reservations/' + reservation['id'] + '/guests'))
             assert isinstance(guests, list), 'Invalid guest list response'
         status = json.loads(fetch('/api/sync/status'))
+        vehicle_units_checked = 0
+        if manifest.get('checks', {}).get('resident_vehicles'):
+            residents = json.loads(fetch('/api/residents'))
+            for resident in residents:
+                unit = urllib.parse.quote(resident['unit'], safe='')
+                vehicles = json.loads(fetch('/api/residents/' + unit + '/vehicles'))
+                assert isinstance(vehicles, list), 'Invalid vehicle list response'
+                assert all(item['unit'] == resident['unit'] for item in vehicles), 'Vehicle belongs to another apartment'
+                vehicle_units_checked += 1
         report = {'version': VERSION, 'deployed_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   'backend': version, 'frontend_bundle': script, 'visits_before': len(before), 'visits_after': len(after),
                   'active_before': sum(not x['exit_at'] for x in before), 'active_after': sum(not x['exit_at'] for x in after),
                   'sync': status, 'backup': str(BACKUP), 'previous_images': before_images, 'reservations_synced': len(reservations_after)}
+        report['vehicle_units_checked'] = vehicle_units_checked
         (RELEASE / 'deployment-report.json').write_text(json.dumps(report, indent=2))
         print(json.dumps(report, indent=2), flush=True)
     except Exception:

@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, User, Phone, Mail, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
 import { Resident } from '../types';
+import ResidentVehicles from './ResidentVehicles';
 import { cameraAccessErrorMessage, openCameraStream, resizeImageDataUrl, stopMediaStream } from '../utils/camera';
 
 interface ResidentsModuleProps {
@@ -526,7 +527,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
 
       if (res.ok) {
         const updated = await res.json();
-        setResidents(prev => prev.map(r => r.unit === selectedUnit ? updated : r));
+        setResidents(prev => prev.some(r => r.unit === updated.unit) ? prev.map(r => r.unit === updated.unit ? updated : r) : [...prev, updated]);
         
         if (isInternetOnline) {
           showToast(`Moradores do Apto ${selectedUnit} salvos e integrados na planilha!`, 'success');
@@ -1404,6 +1405,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
             </form>
 
             {/* Last Updated Timestamp from API */}
+            <ResidentVehicles key={selectedUnit} unit={selectedUnit} registered={residents.some(resident => resident.unit === selectedUnit)} />
             {residents.find(r => r.unit === selectedUnit)?.lastUpdated && (
               <div className="bg-[#05060a]/50 p-3 border-t border-slate-900 text-[9px] text-slate-500 font-mono text-center">
                 Última alteração: {new Date(residents.find(r => r.unit === selectedUnit)!.lastUpdated!).toLocaleString('pt-BR')}
