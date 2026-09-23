@@ -23,7 +23,7 @@ type BackendAccessLog = {
 
 type CreateVisitInput = Omit<Visit, 'id' | 'entryTime' | 'syncStatus'>;
 type CreateShoppingInput = Omit<ShoppingDelivery, 'id' | 'receivedAt' | 'withdrawnAt' | 'status' | 'syncStatus'>;
-type CreateReservationInput = Omit<CommonAreaReservation, 'id' | 'status' | 'syncStatus' | 'createdAt' | 'updatedAt'>;
+type CreateReservationInput = Omit<CommonAreaReservation, 'id' | 'status' | 'syncStatus' | 'signed' | 'createdAt' | 'updatedAt'>;
 
 export type InternetAccount = { id:string; account_type:'resident'|'employee'; name?:string; apartment:string; username:string; enabled:boolean; expires_at:string; max_connections:number; download_kbps:number; upload_kbps:number; active_connections:number; generated_password?:string };
 
@@ -146,6 +146,17 @@ export async function createShoppingDelivery(input: CreateShoppingInput): Promis
   });
 }
 
+export type DeliveryPhotoSession = { id: string; code: string; expiresAt: string };
+export type DeliveryPhotoStatus = { status: 'waiting' | 'ready' | 'expired' | 'consumed'; photo?: string };
+
+export async function createDeliveryPhotoSession(): Promise<DeliveryPhotoSession> {
+  return request<DeliveryPhotoSession>('/api/delivery-photo-sessions', { method: 'POST' });
+}
+
+export async function fetchDeliveryPhotoStatus(id: string): Promise<DeliveryPhotoStatus> {
+  return request<DeliveryPhotoStatus>(`/api/delivery-photo-sessions/${id}`);
+}
+
 export async function withdrawShoppingDelivery(id: string): Promise<ShoppingDelivery> {
   return request<ShoppingDelivery>('/api/shopping/withdraw', {
     method: 'POST',
@@ -153,9 +164,25 @@ export async function withdrawShoppingDelivery(id: string): Promise<ShoppingDeli
   });
 }
 
+export type DeliveryWithdrawalCode = { code: string; expiresAt: string };
+export type DeliveryWithdrawalStatus = { status: 'waiting' | 'signed' | 'expired'; emailStatus?: 'pending' | 'sent' | 'failed' };
+
+export async function createDeliveryWithdrawalCode(id: string): Promise<DeliveryWithdrawalCode> {
+  return request<DeliveryWithdrawalCode>(`/api/shopping/${id}/withdrawal-signature-code`, { method: 'POST' });
+}
+
+export async function fetchDeliveryWithdrawalStatus(id: string): Promise<DeliveryWithdrawalStatus> {
+  return request<DeliveryWithdrawalStatus>(`/api/shopping/${id}/withdrawal-signature-status`);
+}
+
 export async function fetchReservations(): Promise<CommonAreaReservation[]> {
   return request<CommonAreaReservation[]>('/api/reservations');
 }
+
+export type ReservationGuest = { id: string; name: string; document: string; confirmed: boolean };
+export const fetchReservationGuests = (id: string) => request<ReservationGuest[]>(`/api/reservations/${encodeURIComponent(id)}/guests`);
+export const addReservationGuest = (id: string, name: string, document: string) => request<ReservationGuest>(`/api/reservations/${encodeURIComponent(id)}/guests`, { method: 'POST', body: JSON.stringify({ name, document }) });
+export const confirmReservationGuest = (id: string, guestID: string, confirmed: boolean) => request<{ confirmed: boolean }>(`/api/reservations/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestID)}`, { method: 'PATCH', body: JSON.stringify({ confirmed }) });
 
 export async function createReservation(input: CreateReservationInput): Promise<CommonAreaReservation> {
   return request<CommonAreaReservation>('/api/reservations', {
@@ -176,6 +203,11 @@ export async function deleteReservation(id: string): Promise<void> {
     method: 'POST',
     body: JSON.stringify({ id }),
   });
+}
+
+export type ReservationSignatureCode = { code: string; expiresAt: string };
+export async function createReservationSignatureCode(id: string): Promise<ReservationSignatureCode> {
+  return request<ReservationSignatureCode>(`/api/reservations/${id}/signature-code`, { method: 'POST' });
 }
 
 export const fetchInternetAccounts = () => request<InternetAccount[]>('/api/internet-accounts');

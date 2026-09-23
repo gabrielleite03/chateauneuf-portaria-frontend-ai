@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Building2, CalendarDays, CheckCircle2, History, Key, LayoutDashboard, Package, Settings, Sparkles, Wifi, WifiOff, Wrench } from 'lucide-react';
 
-import { checkoutVisit, createShoppingDelivery, createVisit, fetchBackendVersion, fetchKeyRecords, fetchShoppingDeliveries, fetchSyncStatus, fetchVisits, runSync, withdrawShoppingDelivery } from './api';
+import { checkoutVisit, createShoppingDelivery, createVisit, fetchBackendVersion, fetchKeyRecords, fetchShoppingDeliveries, fetchSyncStatus, fetchVisits, runSync } from './api';
 import { AppVersion, KeyRecord, ShoppingDelivery, SyncStatus, Visit } from './types';
 import { frontendVersion } from './version';
 import ActiveVisits from './components/ActiveVisits';
@@ -175,14 +175,13 @@ export default function App() {
 
   const handleWithdrawShopping = async (id: string) => {
     try {
-      const updatedDelivery = await withdrawShoppingDelivery(id);
-      setShoppingDeliveries(prev => prev.map(delivery => (delivery.id === id ? updatedDelivery : delivery)));
+      const unit = shoppingDeliveries.find(delivery => delivery.id === id)?.unit || '';
       await fetchData();
 
       showToast(
         syncStatus.isInternetOnline
-          ? `Retirada da compra do ${updatedDelivery.unit} registrada no backend Go.`
-          : `Retirada da compra do ${updatedDelivery.unit} gravada localmente e pendente de sincronizacao.`,
+          ? `Retirada da compra do ${unit} confirmada com assinatura.`
+          : `Retirada da compra do ${unit} assinada e pendente de sincronizacao.`,
         syncStatus.isInternetOnline ? 'success' : 'warning',
       );
     } catch (err) {

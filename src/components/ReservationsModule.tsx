@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Ban, CalendarDays, Check, Clock, MapPin, PartyPopper, Plus, RefreshCw, Search, Trash2, User, Users } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Ban, CalendarDays, ChevronRight, Clock, Eye, MapPin, PartyPopper, Plus, RefreshCw, Search, Trash2, User, Users, X } from 'lucide-react';
 import { CommonAreaReservation } from '../types';
-import { createReservation, deleteReservation, fetchReservations, updateReservationStatus } from '../api';
+import { createReservation, createReservationSignatureCode, deleteReservation, fetchReservations, updateReservationStatus } from '../api';
 import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
+import ReservationGuests from './ReservationGuests';
 
 interface ReservationsModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
@@ -50,6 +52,8 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export default function ReservationsModule({ showToast, isInternetOnline }: ReservationsModuleProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
   const dateBounds = reservationDateBounds();
   const [reservations, setReservations] = useState<CommonAreaReservation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +62,10 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
   const [areaFilter, setAreaFilter] = useState<'todos' | CommonAreaReservation['area']>('todos');
   const [statusFilter, setStatusFilter] = useState<'todos' | CommonAreaReservation['status']>('todos');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [signatureCode, setSignatureCode] = useState<{ reservationId: string; code: string; expiresAt: string } | null>(null);
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
+  const [updatingReservationId, setUpdatingReservationId] = useState<string | null>(null);
+  const [signatureIssue, setSignatureIssue] = useState<{ unit: string; message: string } | null>(null);
 
   const [formData, setFormData] = useState({
     area: 'Churrasqueira' as CommonAreaReservation['area'],
@@ -86,6 +94,37 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     loadReservations();
   }, []);
 
+  useEffect(() => {
+    if (!reservations.some(item => item.syncStatus !== 'synced')) return;
+    let disposed = false;
+    const timer = window.setInterval(async () => {
+      try {
+        const rows = await fetchReservations();
+        if (!disposed) setReservations(rows);
+      } catch { /* Keep the current records visible until the next refresh. */ }
+    }, 10000);
+    return () => { disposed = true; window.clearInterval(timer); };
+  }, [reservations]);
+
+  useEffect(() => {
+    if (!signatureCode) return;
+    const refresh = async () => {
+      const remaining = Math.max(0, Math.ceil((new Date(signatureCode.expiresAt).getTime() - Date.now()) / 1000));
+      setSecondsRemaining(remaining);
+      try {
+        const rows = await fetchReservations();
+        setReservations(rows);
+        if (rows.find(item => item.id === signatureCode.reservationId)?.signed) {
+          setSignatureCode(null);
+          showToast('Termo assinado com sucesso.', 'success');
+        }
+      } catch { /* mantém a contagem mesmo durante uma falha breve */ }
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 2000);
+    return () => window.clearInterval(timer);
+  }, [signatureCode]);
+
   const filteredReservations = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
     return reservations.filter(reservation => {
@@ -100,6 +139,23 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
       return matchesSearch && matchesArea && matchesStatus;
     });
   }, [areaFilter, reservations, searchTerm, statusFilter]);
+
+  const selectedReservation = reservations.find(item => item.id === selectedReservationId);
+  const closeDetails = () => {
+    setSelectedReservationId(null);
+    setSignatureCode(null);
+    setSignatureIssue(null);
+  };
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (selectedReservation) {
+      if (!dialog?.open) dialog?.showModal();
+    } else {
+      dialog?.close();
+      if (selectedReservationId) closeDetails();
+    }
+  }, [selectedReservation, selectedReservationId]);
 
   const conflictingReservation = useMemo(() => {
     if (!formData.reservationDate) return undefined;
@@ -177,11 +233,13 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
   };
 
   const handleStatus = async (reservation: CommonAreaReservation, status: CommonAreaReservation['status']) => {
+	if (updatingReservationId === reservation.id) return;
     if (status === 'cancelada' && !canCancelReservation(reservation)) {
       showToast('A reserva so pode ser cancelada ate 7 dias antes da data do evento.', 'warning');
       return;
     }
 
+    setUpdatingReservationId(reservation.id);
     try {
       const updated = await updateReservationStatus(reservation.id, status);
       setReservations(prev => prev.map(item => item.id === reservation.id ? updated : item));
@@ -189,6 +247,8 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     } catch (err) {
       console.error(err);
       showToast(errorMessage(err, 'Nao foi possivel atualizar a reserva.'), 'error');
+    } finally {
+      setUpdatingReservationId(null);
     }
   };
 
@@ -201,6 +261,19 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
     } catch (err) {
       console.error(err);
       showToast(errorMessage(err, 'Nao foi possivel excluir a reserva.'), 'error');
+    }
+  };
+
+  const handleSignature = async (reservation: CommonAreaReservation) => {
+    try {
+      const result = await createReservationSignatureCode(reservation.id);
+      setSignatureCode({ reservationId: reservation.id, code: result.code, expiresAt: result.expiresAt });
+    } catch (err) {
+      const message = errorMessage(err, 'Não foi possível gerar o código de assinatura.');
+      if (message.toLocaleLowerCase('pt-BR').includes('e-mail')) {
+        setSignatureIssue({ unit: reservation.unit, message });
+      }
+      showToast(message, 'error');
     }
   };
 
@@ -351,6 +424,7 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
           <div className="relative flex-1 w-full">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
+              aria-label="Buscar reservas"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por apto, morador, area ou observacao..."
@@ -358,41 +432,115 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value as typeof areaFilter)} className="bg-slate-950 border border-slate-800 text-slate-100 rounded-sm px-3 py-3 text-sm outline-none">
+            <select aria-label="Filtrar por area" value={areaFilter} onChange={(e) => setAreaFilter(e.target.value as typeof areaFilter)} className="bg-slate-950 border border-slate-800 text-slate-100 rounded-sm px-3 py-3 text-sm outline-none">
               <option value="todos">Todas as areas</option>
               {COMMON_AREAS.map(area => <option key={area} value={area}>{area}</option>)}
             </select>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="bg-slate-950 border border-slate-800 text-slate-100 rounded-sm px-3 py-3 text-sm outline-none">
+            <select aria-label="Filtrar por status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="bg-slate-950 border border-slate-800 text-slate-100 rounded-sm px-3 py-3 text-sm outline-none">
               <option value="todos">Todos os status</option>
               <option value="reservada">Reservadas</option>
               <option value="concluida">Concluidas</option>
               <option value="cancelada">Canceladas</option>
             </select>
-            <button onClick={loadReservations} disabled={isLoading} className="bg-slate-950 border border-slate-800 text-slate-300 hover:text-emerald-400 rounded-sm px-4 py-3 transition cursor-pointer">
+            <button aria-label="Atualizar reservas" onClick={loadReservations} disabled={isLoading} className="bg-slate-950 border border-slate-800 text-slate-300 hover:text-emerald-400 rounded-sm px-4 py-3 transition cursor-pointer">
               <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
-          {filteredReservations.map(reservation => (
-            <ReservationCard
-              key={reservation.id}
-              reservation={reservation}
-              onStatus={handleStatus}
-              onDelete={handleDelete}
-            />
-          ))}
+        <p className="text-xs text-slate-500">Selecione uma reserva para consultar os detalhes e acessar as ações.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start" id="reservation-columns" aria-busy={isLoading}>
+          {COMMON_AREAS.map((area, index) => {
+            const items = filteredReservations.filter(reservation => reservation.area === area);
+            const accent = index === 0 ? 'text-emerald-400' : 'text-cyan-300';
+            const border = index === 0 ? 'border-emerald-900/50' : 'border-cyan-900/50';
+            return (
+              <section key={area} aria-labelledby={`reservation-area-${index}`} className={`min-w-0 rounded-sm border bg-[#0a0d14] ${border}`}>
+                <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 ${border}`}>
+                  <h3 id={`reservation-area-${index}`} className={`flex items-center gap-2 font-bold ${accent}`}>
+                    {index === 0 ? <MapPin size={18} /> : <PartyPopper size={18} />}{area}
+                  </h3>
+                  <span className={`text-xs font-mono ${accent}`}>{items.length} reserva{items.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="space-y-2 p-3">
+                  {items.map(reservation => (
+                    <button key={reservation.id} type="button" id={`reservation-card-${reservation.id}`}
+                      onClick={() => setSelectedReservationId(reservation.id)} aria-haspopup="dialog"
+                      aria-label={`Abrir reserva de ${area}, apartamento ${reservation.unit}, ${formatDate(reservation.reservationDate)}`}
+                      className={`w-full rounded-sm border border-slate-800 bg-slate-950/60 p-3 text-left transition hover:bg-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 ${index === 0 ? 'hover:border-emerald-500/60 focus-visible:outline-emerald-400' : 'hover:border-cyan-500/60 focus-visible:outline-cyan-400'}`}>
+                      <span className="flex flex-wrap items-start justify-between gap-2">
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[10px] uppercase tracking-wider text-slate-500">Apartamento</span>
+                          <span className="block break-words text-xl font-bold text-white">{reservation.unit}</span>
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className={`flex items-center justify-end gap-1.5 text-sm font-bold ${accent}`}><CalendarDays size={13} />{formatDate(reservation.reservationDate)}</span>
+                          <span className="mt-1 flex items-center justify-end gap-1 text-xs text-slate-400"><Clock size={12} />{reservation.startTime} – {reservation.endTime}</span>
+                        </span>
+                      </span>
+                      <span className="mt-2 flex items-center gap-2 border-t border-slate-800/60 pt-2">
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-slate-200" title={reservation.residentName}>{reservation.residentName}</span>
+                          <span className={`mt-1 block text-[10px] uppercase tracking-wide ${reservation.status === 'cancelada' ? 'text-red-400' : reservation.status === 'concluida' ? 'text-slate-500' : accent}`}>
+                            {reservation.status === 'concluida' ? 'Concluída' : reservation.status === 'cancelada' ? 'Cancelada' : 'Reservada'}
+                            {reservation.status === 'reservada' && (reservation.signed ? ' · Termo assinado' : ' · Assinatura pendente')}
+                          </span>
+                        </span>
+                        <ChevronRight size={16} className={`shrink-0 ${accent}`} />
+                      </span>
+                      {reservation.syncStatus !== 'synced' && <span className="mt-2 block text-[10px] text-amber-400">{reservation.syncStatus === 'failed' ? 'Falha na sincronização' : 'Sincronização pendente'}</span>}
+                    </button>
+                  ))}
+                  {items.length === 0 && <p className="px-3 py-8 text-center text-sm text-slate-500">{isLoading ? 'Carregando reservas...' : searchTerm || areaFilter !== 'todos' || statusFilter !== 'todos' ? 'Nenhuma reserva corresponde aos filtros.' : 'Nenhuma reserva cadastrada para esta área.'}</p>}
+                </div>
+              </section>
+            );
+          })}
         </div>
 
-        {!isLoading && filteredReservations.length === 0 && (
-          <div className="bg-[#0a0d14] border border-dashed border-slate-800/70 rounded-sm py-16 text-center text-slate-500">
-            <PartyPopper size={30} className="mx-auto mb-3 text-slate-700" />
-            <p className="text-xs uppercase tracking-widest font-bold">Nenhuma reserva encontrada</p>
-            <p className="text-[11px] mt-1">Cadastre uma reserva ou ajuste os filtros de busca.</p>
-          </div>
-        )}
       </div>
+      {createPortal(
+        <dialog ref={dialogRef} aria-labelledby="reservation-details-title"
+          className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-lg border border-slate-700 bg-[#0a0d14] p-0 text-slate-100 shadow-2xl backdrop:bg-black/80"
+          onClose={closeDetails}
+          onCancel={event => {
+            event.preventDefault();
+            if (signatureCode) setSignatureCode(null);
+            else if (signatureIssue) setSignatureIssue(null);
+            else closeDetails();
+          }}
+          onClick={event => { if (event.target === event.currentTarget) closeDetails(); }}>
+          <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-5 py-4">
+            <h3 id="reservation-details-title" className="font-bold">Detalhes da reserva</h3>
+            <button type="button" autoFocus onClick={closeDetails} aria-label="Fechar detalhes" className="rounded p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus-visible:outline-2 focus-visible:outline-emerald-400"><X size={20} /></button>
+          </div>
+          {selectedReservation && <div className="p-4"><ReservationCard reservation={selectedReservation} onStatus={handleStatus} onDelete={handleDelete} onSignature={handleSignature} updatingReservationId={updatingReservationId} /><ReservationGuests key={selectedReservation.id} reservationId={selectedReservation.id} /></div>}
+      {signatureCode && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0a0d14] border border-[#c9a45d]/50 rounded-lg p-7 text-center shadow-2xl font-mono">
+            <p className="text-[#c9a45d] text-xs font-bold uppercase tracking-[0.2em]">Código para assinatura</p>
+            <p className="text-white text-5xl sm:text-6xl tracking-[0.2em] font-black my-6">{signatureCode.code}</p>
+            <p className={secondsRemaining > 0 ? 'text-slate-400' : 'text-red-400 font-bold'}>
+              {secondsRemaining > 0 ? `Expira em ${Math.floor(secondsRemaining / 60)}:${String(secondsRemaining % 60).padStart(2, '0')}` : 'Código expirado'}
+            </p>
+            <button onClick={() => setSignatureCode(null)} className="mt-6 w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-sm text-xs uppercase font-bold tracking-widest">Fechar</button>
+          </div>
+        </div>
+      )}
+      {signatureIssue && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0a0d14] border border-amber-500/50 rounded-lg p-7 text-center shadow-2xl font-mono">
+            <p className="text-amber-400 text-xs font-bold uppercase tracking-[0.2em]">Assinatura pendente</p>
+            <h3 className="text-white text-xl font-black mt-4">Apartamento {signatureIssue.unit}</h3>
+            <p className="text-slate-300 text-sm leading-relaxed mt-4">Não foi possível gerar o código porque o morador não possui um e-mail válido cadastrado.</p>
+            <p className="text-slate-500 text-xs mt-3">Cadastre o e-mail do proprietário ou inquilino e tente novamente.</p>
+            <button onClick={() => setSignatureIssue(null)} className="mt-6 w-full py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-sm text-xs uppercase font-bold tracking-widest">Entendi</button>
+          </div>
+        </div>
+      )}
+
+        </dialog>, document.body
+      )}
     </div>
   );
 }
@@ -410,9 +558,11 @@ interface ReservationCardProps {
   reservation: CommonAreaReservation;
   onStatus: (reservation: CommonAreaReservation, status: CommonAreaReservation['status']) => Promise<void>;
   onDelete: (reservation: CommonAreaReservation) => Promise<void>;
+  onSignature: (reservation: CommonAreaReservation) => Promise<void>;
+  updatingReservationId: string | null;
 }
 
-const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onStatus, onDelete }) => {
+const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onStatus, onDelete, onSignature, updatingReservationId }) => {
   const statusClasses = {
     reservada: 'bg-emerald-950/35 text-emerald-400 border-emerald-500/25',
     concluida: 'bg-slate-950 text-slate-400 border-slate-700',
@@ -463,25 +613,27 @@ const ReservationCard: React.FC<ReservationCardProps> = ({ reservation, onStatus
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-900/70 pt-3">
-        <span className={`text-[9px] uppercase font-bold ${reservation.syncStatus === 'pending' ? 'text-amber-400' : 'text-emerald-400'}`}>
-          {reservation.syncStatus === 'pending' ? 'Pendente local' : 'Sincronizada'}
+        <span className={`text-[9px] uppercase font-bold ${reservation.syncStatus !== 'synced' ? 'text-amber-400' : 'text-emerald-400'}`}>
+          {reservation.syncStatus === 'failed' ? 'Falha na sincronização' : reservation.syncStatus === 'pending' ? 'Sincronização pendente' : 'Sincronizada'}
           {reservation.status === 'reservada' && !canCancel && (
             <span className="block text-red-400 mt-1">Cancelamento fora do prazo</span>
           )}
         </span>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {reservation.status === 'reservada' && (
             <>
-              <button onClick={() => onStatus(reservation, 'concluida')} className="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/25 text-emerald-400 rounded-sm text-[9px] uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1">
-                <Check size={11} /> Concluir
-              </button>
+              {!reservation.signed ? (
+                <button onClick={() => onSignature(reservation)} className="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 border border-blue-500/25 text-blue-300 rounded-sm text-[9px] uppercase font-bold tracking-wider cursor-pointer">Assinar</button>
+              ) : (
+                <a href={`/api/reservations/${reservation.id}/signed-document`} target="_blank" rel="noreferrer" className="px-3 py-1.5 bg-emerald-950 border border-emerald-500/25 text-emerald-400 rounded-sm text-[9px] uppercase font-bold flex items-center gap-1"><Eye size={11}/> Ver termo</a>
+              )}
               <button
                 onClick={() => onStatus(reservation, 'cancelada')}
-                disabled={!canCancel}
+                disabled={!canCancel || updatingReservationId === reservation.id}
                 title={canCancel ? 'Cancelar reserva' : 'Cancelamento permitido somente ate 7 dias antes do evento'}
                 className="px-3 py-1.5 bg-red-950/35 hover:bg-red-950 disabled:bg-slate-950 disabled:text-slate-600 disabled:border-slate-800 border border-red-500/25 text-red-400 rounded-sm text-[9px] uppercase font-bold tracking-wider cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
               >
-                <Ban size={11} /> Cancelar
+                <Ban size={11} /> {updatingReservationId === reservation.id ? 'Cancelando...' : 'Cancelar'}
               </button>
             </>
           )}

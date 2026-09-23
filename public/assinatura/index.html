@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#102d3a">
+  <link rel="manifest" href="/assinatura/manifest.webmanifest">
+  <title>Coleta Chateauneuf</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#102d3a;font-family:Arial;color:#172b35;display:grid;place-items:center;padding:18px}.card{width:min(620px,100%);background:#fff;border-radius:20px;overflow:hidden}.head{background:#17495b;color:#fff;text-align:center;padding:24px}.head h1{font-family:Georgia;margin:0;color:#c9a45d}.body{padding:24px}input{width:100%;font-size:30px;letter-spacing:8px;text-align:center;padding:14px;margin:8px 0 16px}button,.button{display:block;width:100%;border:0;border-radius:10px;padding:15px;background:#17495b;color:#fff;font-weight:700;text-align:center}.choice{display:grid;gap:14px}.choice button{padding:24px;font-size:17px}.delivery{background:#c9a45d!important;color:#102d3a!important}.muted{color:#687a82;font-size:13px}.details{background:#f4f7f8;padding:15px;margin-bottom:14px}.expand{margin-bottom:10px;background:#c9a45d;color:#102d3a}.pad{background:#fff}.pad:fullscreen{padding:14px;display:flex;flex-direction:column}.pad:fullscreen canvas{height:calc(100vh - 86px);flex:1}canvas{width:100%;height:220px;border:2px dashed #9caeb5;border-radius:10px;touch-action:none}.actions{display:flex;gap:10px;margin-top:12px}.clear,.secondary{background:#65777e}.error{color:#a33;font-weight:700}.ok{text-align:center;padding:25px}.preview{width:100%;max-height:55vh;object-fit:contain;border-radius:12px;margin:12px 0}.file{position:absolute;left:-9999px}.back{margin-top:14px;background:transparent;color:#65777e;border:1px solid #ccd6da}@media(max-width:500px){body{padding:0}.card{min-height:100vh;border-radius:0}}
+  </style>
+</head>
+<body>
+<main class="card">
+  <header class="head"><h1>Condomínio Chateauneuf</h1><div>Coleta digital da portaria</div></header>
+  <section class="body">
+    <div id="home" class="choice">
+      <p class="muted">Selecione o tipo de coleta:</p>
+      <button id="mode-signature">Assinatura de reserva</button>
+      <button id="mode-withdrawal">Assinatura de entrega</button>
+      <button id="mode-delivery" class="delivery">Foto de entrega</button>
+    </div>
+    <form id="codeForm" hidden><h2 id="signatureTitle">Assinatura de reserva</h2><div id="signatureQrBlock" hidden><p class="muted">Fotografe o QR code exibido na portaria.</p><label for="signatureQrFile" class="button delivery">Ler QR code</label><input id="signatureQrFile" class="file" type="file" accept="image/*" capture="environment"><p class="muted">Ou informe os seis números:</p></div><label>Código do formulário</label><input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required><button>Continuar</button><p class="muted">Código válido por três minutos.</p><p id="codeError" class="error"></p><button type="button" class="back" onclick="location.reload()">Voltar</button></form>
+    <div id="sign" hidden><div class="details" id="details"></div><p class="muted">Confira os dados e assine abaixo.</p><button class="expand" id="expand" type="button">Assinar em tela cheia</button><div class="pad" id="pad"><canvas id="canvas"></canvas><div class="actions"><button type="button" class="clear" id="clear">Limpar</button><button type="button" id="confirm">Confirmar</button></div></div><p id="signError" class="error"></p></div>
+    <div id="success" class="ok" hidden><h2 id="successTitle">Documento assinado</h2><p id="successText">O termo foi registrado e enviado por e-mail.</p><button onclick="location.reload()">Nova coleta</button></div>
+    <div id="deliveryFlow" hidden>
+      <div id="deliveryScan">
+        <h2>Foto de entrega</h2><p class="muted">Fotografe o QR code exibido no formulário da portaria.</p>
+        <label for="qrFile" class="button delivery">Ler QR code</label><input id="qrFile" class="file" type="file" accept="image/*" capture="environment">
+        <p class="muted">Ou informe os seis números:</p><input id="deliveryCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"><button id="useDeliveryCode" type="button">Continuar</button>
+        <p id="deliveryError" class="error"></p><button type="button" class="back" onclick="location.reload()">Voltar</button>
+      </div>
+      <div id="deliveryCapture" hidden>
+        <h2>Fotografar produto</h2><p class="muted">Código <strong id="activeDeliveryCode"></strong> identificado.</p>
+        <label for="deliveryPhoto" class="button delivery">Abrir câmera</label><input id="deliveryPhoto" class="file" type="file" accept="image/*" capture="environment">
+        <img id="deliveryPreview" class="preview" hidden alt="Foto da entrega"><button id="sendDeliveryPhoto" type="button" hidden>Tentar enviar novamente</button><p id="deliveryUploadError" class="error"></p>
+      </div>
+      <div id="deliverySuccess" class="ok" hidden><h2>Foto enviada</h2><p>A imagem já está disponível no formulário da portaria.</p><button onclick="location.reload()">Nova coleta</button></div>
+    </div>
+  </section>
+</main>
+<script src="/assinatura/jsQR.js?v=20260905.16"></script><script src="/assinatura/signature.js?v=20260905.16"></script><script src="/assinatura/delivery.js?v=20260905.16"></script>
+</body></html>

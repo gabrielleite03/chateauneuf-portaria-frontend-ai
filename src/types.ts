@@ -86,6 +86,7 @@ export interface CommonAreaReservation {
   notes?: string;
   status: 'reservada' | 'concluida' | 'cancelada';
   syncStatus: 'synced' | 'pending' | 'failed';
+  signed: boolean;
   createdAt: string;
   updatedAt: string;
 }

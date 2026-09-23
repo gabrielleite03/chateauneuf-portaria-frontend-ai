@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertCircle, Camera, CheckCircle2, Landmark, PackagePlus, ReceiptText, Trash2, Upload, UserRound } from 'lucide-react';
+import { AlertCircle, Camera, CheckCircle2, Landmark, PackagePlus, QrCode, ReceiptText, Trash2, Upload, UserRound } from 'lucide-react';
+import QRCode from 'qrcode';
 import { ShoppingDelivery } from '../types';
+import { createDeliveryPhotoSession, fetchDeliveryPhotoStatus } from '../api';
 import { cameraAccessErrorMessage } from '../utils/camera';
 import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
 
@@ -25,6 +27,8 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [registeredItem, setRegisteredItem] = useState<ShoppingDelivery | null>(null);
   const [isWebcamActive, setIsWebcamActive] = useState(false);
+  const [mobilePhotoSession, setMobilePhotoSession] = useState<{ id: string; code: string; expiresAt: string; qr: string } | null>(null);
+  const [mobilePhotoSeconds, setMobilePhotoSeconds] = useState(0);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -44,6 +48,46 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
       videoRef.current.srcObject = stream;
     }
   }, [isWebcamActive, stream]);
+
+  useEffect(() => {
+    if (!mobilePhotoSession) return;
+    const poll = async () => {
+      const remaining = Math.max(0, Math.ceil((new Date(mobilePhotoSession.expiresAt).getTime() - Date.now()) / 1000));
+      setMobilePhotoSeconds(remaining);
+      if (remaining === 0) return;
+      try {
+        const result = await fetchDeliveryPhotoStatus(mobilePhotoSession.id);
+        if (result.status === 'ready' && result.photo) {
+          setPhoto(result.photo);
+          setMobilePhotoSession(null);
+          setErrors(current => {
+            const next = { ...current };
+            delete next.photo;
+            return next;
+          });
+        } else if (result.status === 'expired' || result.status === 'consumed') {
+          setMobilePhotoSession(null);
+        }
+      } catch (error) {
+        console.error('Failed to read mobile delivery photo', error);
+      }
+    };
+    poll();
+    const timer = window.setInterval(poll, 1500);
+    return () => window.clearInterval(timer);
+  }, [mobilePhotoSession]);
+
+  const startMobilePhoto = async () => {
+    try {
+      const session = await createDeliveryPhotoSession();
+      const qr = await QRCode.toDataURL(session.code, { width: 420, margin: 4, errorCorrectionLevel: 'H' });
+      setMobilePhotoSession({ ...session, qr });
+      setMobilePhotoSeconds(180);
+    } catch (error) {
+      console.error(error);
+      setErrors(current => ({ ...current, photo: 'Nao foi possivel iniciar a coleta pelo celular.' }));
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -366,7 +410,7 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button type="button" onClick={startWebcam} className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer">
                       <Camera size={12} />
                       <span>Camera</span>
@@ -375,9 +419,24 @@ export default function ShoppingModule({ onRegister, isInternetOnline }: Shoppin
                       <Upload size={12} />
                       <span>Arquivo</span>
                     </button>
+                    <button type="button" onClick={startMobilePhoto} className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-950/60 border border-blue-500/30 hover:border-blue-400 text-blue-300 font-mono font-bold text-[10px] uppercase tracking-wider rounded-sm transition cursor-pointer">
+                      <QrCode size={12} />
+                      <span>Celular</span>
+                    </button>
                   </div>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                {mobilePhotoSession && (
+                  <div className="mt-3 bg-white rounded-md p-4 text-center">
+                    <p className="text-[#17495b] text-xs font-bold uppercase">Leia no Android</p>
+                    <img src={mobilePhotoSession.qr} alt={`QR code ${mobilePhotoSession.code}`} className="w-64 h-64 max-w-full mx-auto" />
+                    <p className="text-[#172b35] font-mono text-2xl font-black tracking-[0.18em]">{mobilePhotoSession.code}</p>
+                    <p className={`text-xs mt-1 ${mobilePhotoSeconds > 0 ? 'text-slate-500' : 'text-red-600'}`}>
+                      {mobilePhotoSeconds > 0 ? `Expira em ${Math.floor(mobilePhotoSeconds / 60)}:${String(mobilePhotoSeconds % 60).padStart(2, '0')}` : 'Codigo expirado'}
+                    </p>
+                    <button type="button" onClick={() => setMobilePhotoSession(null)} className="mt-3 bg-slate-700 text-white px-3 py-2 rounded text-xs">Cancelar coleta</button>
+                  </div>
+                )}
                 {photo && !isWebcamActive && (
                   <button type="button" onClick={() => setPhoto(null)} className="w-full flex items-center justify-center gap-1 py-1.5 px-3 bg-red-950/30 hover:bg-red-950/60 border border-red-900/30 hover:border-red-900 text-red-400 font-mono text-[9px] uppercase tracking-wider rounded-sm transition cursor-pointer">
                     <Trash2 size={10} />
