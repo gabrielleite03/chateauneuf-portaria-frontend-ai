@@ -10,6 +10,8 @@ no servidor com `docker pull <imagem>:<versao>`.
 
 O manifesto pode incluir `checks.frontend_markers` (textos esperados no bundle)
 e `checks.resident_vehicles: true` para validar a API de veiculos de cada apartamento.
+`checks.inventory: true` valida a API de estoque, os saldos contra as movimentacoes,
+os totais das compras e o responsavel de cada saida, sem criar registros de teste.
 
 Confira o ambiente sem alterar arquivos ou containers:
 

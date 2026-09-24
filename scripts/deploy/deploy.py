@@ -181,6 +181,24 @@ def main():
                   'active_before': sum(not x['exit_at'] for x in before), 'active_after': sum(not x['exit_at'] for x in after),
                   'sync': status, 'backup': str(BACKUP), 'previous_images': before_images, 'reservations_synced': len(reservations_after)}
         report['vehicle_units_checked'] = vehicle_units_checked
+        if manifest.get('checks', {}).get('inventory'):
+            inventory = json.loads(fetch('/api/inventory'))
+            assert all(isinstance(inventory.get(key), list) for key in ['products', 'purchases', 'movements']), 'Invalid inventory response'
+            balances = {item['id']: 0 for item in inventory['products']}
+            costs = {item['id']: 0 for item in inventory['purchases']}
+            for movement in inventory['movements']:
+                assert movement['productId'] in balances, 'Inventory product missing'
+                balances[movement['productId']] += movement['quantityMilli']
+                if movement['kind'] == 'purchase':
+                    assert movement['purchaseId'] in costs, 'Inventory purchase missing'
+                    assert movement['totalCents'] == (movement['quantityMilli'] * movement['unitCostCents'] + 500) // 1000, 'Incorrect inventory item cost'
+                    costs[movement['purchaseId']] += movement['totalCents']
+                if movement['kind'] == 'withdrawal':
+                    assert movement['responsible'].strip(), 'Missing withdrawal responsible'
+            assert all(item['stockMilli'] >= 0 and balances[item['id']] == item['stockMilli'] for item in inventory['products']), 'Inventory balance mismatch'
+            assert all(item['supplier'].strip() and costs[item['id']] == item['totalCents'] for item in inventory['purchases']), 'Inventory purchase total mismatch'
+            report['inventory_checked'] = True
+            report['inventory_products'] = len(inventory['products'])
         (RELEASE / 'deployment-report.json').write_text(json.dumps(report, indent=2))
         print(json.dumps(report, indent=2), flush=True)
     except Exception:

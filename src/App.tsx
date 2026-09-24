@@ -11,6 +11,7 @@ import HistoryVisits from './components/HistoryVisits';
 import KeyControlModule from './components/KeyControlModule';
 import RegistrationForm from './components/RegistrationForm';
 import ResidentsModule from './components/ResidentsModule';
+import InventoryModule from './components/InventoryModule';
 import DiaristasModule from './components/DiaristasModule';
 import ScheduledServicesModule from './components/ScheduledServicesModule';
 import ShoppingModule from './components/ShoppingModule';
@@ -19,7 +20,7 @@ import ReservationsModule from './components/ReservationsModule';
 import InternetAccessModule from './components/InternetAccessModule';
 import CameraViewerPanel from './components/CameraViewerPanel';
 
-type Tab = 'control' | 'residents' | 'internet' | 'diaristas' | 'scheduled' | 'reservations' | 'shopping' | 'keys' | 'history' | 'status';
+type Tab = 'control' | 'residents' | 'inventory' | 'internet' | 'diaristas' | 'scheduled' | 'reservations' | 'shopping' | 'keys' | 'history' | 'status';
 type ThemeMode = 'light' | 'dark';
 
 function getTimeTheme(date = new Date()): ThemeMode {
@@ -238,6 +239,7 @@ export default function App() {
             <TabButton active={activeTab === 'residents'} onClick={() => setActiveTab('residents')} icon={<Building2 size={14} />}>
               Moradores
             </TabButton>
+            <TabButton active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} icon={<Package size={14} />}>Estoque de limpeza</TabButton>
             <TabButton active={activeTab === 'internet'} onClick={() => setActiveTab('internet')} icon={<Wifi size={14} />}>Internet</TabButton>
             <TabButton active={activeTab === 'diaristas'} onClick={() => setActiveTab('diaristas')} icon={<Sparkles size={14} />}>
               Diaristas
@@ -317,6 +319,7 @@ export default function App() {
             {activeTab === 'residents' && (
               <ResidentsModule showToast={showToast} isInternetOnline={syncStatus.isInternetOnline} />
             )}
+            {activeTab === 'inventory' && <InventoryModule />}
             {activeTab === 'internet' && <InternetAccessModule showToast={showToast} />}
 
             {activeTab === 'diaristas' && (
