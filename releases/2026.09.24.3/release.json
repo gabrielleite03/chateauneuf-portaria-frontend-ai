@@ -1,0 +1,25 @@
+﻿{
+    "version":  "2026.09.24.3",
+    "frontend":  {
+                     "repository":  "https://github.com/gabrielleite03/chateauneuf-portaria-frontend-ai",
+                     "commit":  "0d64ebfbe6d3680591d3e080cf8404ce0c8a2ee7",
+                     "image":  "gabrielleite03/chateauneuf-portaria-frontend:2026.09.24.3",
+                     "digest":  "sha256:733b60521d7bf28c0b9388fa227274eb3e94f8397be5c19131ea32ab519f4cd6"
+                 },
+    "backend":  {
+                    "repository":  "https://github.com/gabrielleite03/chateauneuf-portaria-backend",
+                    "commit":  "137b70d19be82b7ac2292e0b27b37ef08ae9fcb8",
+                    "image":  "gabrielleite03/chateauneuf-portaria-backend:2026.09.24.3",
+                    "digest":  "sha256:042334ba1469ef930a85376579ce6932702d793b4db4ce59abe0ec8b08d2ef27"
+                },
+    "tag":  "v2026.09.24.3",
+    "checks":  {
+                   "frontend_markers":  [
+                                            "authorized-recipients-heading",
+                                            "recipient-name",
+                                            "Adicionar terceiro",
+                                            "Editar terceiro"
+                                        ],
+                   "resident_vehicles":  true
+               }
+}
