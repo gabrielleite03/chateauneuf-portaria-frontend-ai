@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Home, User, Phone, Mail, ShieldAlert, Edit3, Save, Search, RefreshCw, X, Check, Eye, Camera, Upload, Trash2, Plus } from 'lucide-react';
 import { Resident } from '../types';
 import ResidentVehicles from './ResidentVehicles';
+import ResidentAuthorizedRecipients from './ResidentAuthorizedRecipients';
 import { cameraAccessErrorMessage, openCameraStream, resizeImageDataUrl, stopMediaStream } from '../utils/camera';
 
 interface ResidentsModuleProps {
@@ -1273,15 +1274,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                 </div>
               </div>
 
-              <section className="border border-slate-800/40 rounded p-4 bg-slate-950/20 space-y-3" aria-labelledby="authorized-recipients-heading">
-                <h4 id="authorized-recipients-heading" className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Terceiros autorizados para encomendas</h4>
-                <p id="authorized-recipients-help" className="text-xs text-slate-400 leading-relaxed">
-                  Cadastre os terceiros informados antecipadamente pelo morador para que a portaria possa receber encomendas em nome deles neste apartamento. O destinatário deve ser morador cadastrado ou terceiro previamente autorizado.
-                </p>
-                <label htmlFor="authorized-recipients" className="block text-[10px] text-slate-400 font-mono">Nomes completos — um por linha (opcional)</label>
-                <textarea id="authorized-recipients" aria-describedby="authorized-recipients-help authorized-recipients-save-help" value={authorizedRecipients} onChange={event => setAuthorizedRecipients(event.target.value)} rows={4} placeholder="Digite um nome completo por linha" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 font-mono" />
-                <p id="authorized-recipients-save-help" className="text-[10px] text-slate-500">Para remover uma autorização, apague o nome. Clique em Salvar Cadastro para confirmar as alterações.</p>
-              </section>
+              <ResidentAuthorizedRecipients key={selectedUnit} value={authorizedRecipients} onChange={setAuthorizedRecipients} disabled={isSaving} />
 
               {/* CAPTURA DE FOTO */}
               <div className="border border-slate-800/40 rounded p-4 bg-slate-950/20 space-y-3">
