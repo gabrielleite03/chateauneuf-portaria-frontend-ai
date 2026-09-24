@@ -27,6 +27,7 @@ export interface Resident {
   tenantEmail?: string; // E-MAIL DO INQUILINO
   tenantPhone?: string; // TELEFONE DO INQUILINO
   tenantPhoto?: string; // Base64 image do inquilino
+  authorizedRecipients?: string; // One name per line
   familyMembers?: string; // FAMILIARES
   photo?: string; // Base64 image
   lastUpdated?: string; // ISO string

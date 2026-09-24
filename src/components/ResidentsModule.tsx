@@ -38,6 +38,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
   const [tenantPhone, setTenantPhone] = useState('');
   const [tenantPhoto, setTenantPhoto] = useState<string | null>(null);
   const [familyMembers, setFamilyMembers] = useState('');
+  const [authorizedRecipients, setAuthorizedRecipients] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -419,6 +420,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
           setTenantPhone(resObj.tenantPhone || '');
           setTenantPhoto(resObj.tenantPhoto || null);
           setFamilyMembers(resObj.familyMembers || '');
+          setAuthorizedRecipients(resObj.authorizedRecipients || '');
           setPhoto(resObj.photo || null);
         }
       } else {
@@ -454,6 +456,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
         setTenantPhone(resObj.tenantPhone || '');
         setTenantPhoto(resObj.tenantPhoto || null);
         setFamilyMembers(resObj.familyMembers || '');
+        setAuthorizedRecipients(resObj.authorizedRecipients || '');
         setPhoto(resObj.photo || null);
         setErrors({});
       } else {
@@ -466,6 +469,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
         setTenantPhone('');
         setTenantPhoto(null);
         setFamilyMembers('');
+        setAuthorizedRecipients('');
         setPhoto(null);
         setErrors({});
       }
@@ -516,6 +520,7 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
         tenantPhone: tenantPhone.trim() || undefined,
         tenantPhoto: tenantPhoto || undefined,
         familyMembers: familyMembers.trim() || undefined,
+        authorizedRecipients: [...new Map(authorizedRecipients.split(/\r?\n/).map(name => name.trim()).filter(Boolean).map(name => [name.toLocaleLowerCase(), name])).values()].join("\n"),
         photo: photo || undefined
       };
 
@@ -567,7 +572,8 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
       (r.tenant && r.tenant.toLowerCase().includes(term)) ||
       (r.tenantEmail && r.tenantEmail.toLowerCase().includes(term)) ||
       (r.tenantPhone && r.tenantPhone.toLowerCase().includes(term)) ||
-      (r.familyMembers && r.familyMembers.toLowerCase().includes(term))
+      (r.familyMembers && r.familyMembers.toLowerCase().includes(term)) ||
+      (r.authorizedRecipients && r.authorizedRecipients.toLowerCase().includes(term))
     );
   });
 
@@ -1266,6 +1272,16 @@ export default function ResidentsModule({ showToast, isInternetOnline }: Residen
                   )}
                 </div>
               </div>
+
+              <section className="border border-slate-800/40 rounded p-4 bg-slate-950/20 space-y-3" aria-labelledby="authorized-recipients-heading">
+                <h4 id="authorized-recipients-heading" className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Terceiros autorizados para encomendas</h4>
+                <p id="authorized-recipients-help" className="text-xs text-slate-400 leading-relaxed">
+                  Cadastre os terceiros informados antecipadamente pelo morador para que a portaria possa receber encomendas em nome deles neste apartamento. O destinatário deve ser morador cadastrado ou terceiro previamente autorizado.
+                </p>
+                <label htmlFor="authorized-recipients" className="block text-[10px] text-slate-400 font-mono">Nomes completos — um por linha (opcional)</label>
+                <textarea id="authorized-recipients" aria-describedby="authorized-recipients-help authorized-recipients-save-help" value={authorizedRecipients} onChange={event => setAuthorizedRecipients(event.target.value)} rows={4} placeholder="Digite um nome completo por linha" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 text-slate-100 rounded-sm text-xs focus:outline-none focus:border-emerald-500/50 font-mono" />
+                <p id="authorized-recipients-save-help" className="text-[10px] text-slate-500">Para remover uma autorização, apague o nome. Clique em Salvar Cadastro para confirmar as alterações.</p>
+              </section>
 
               {/* CAPTURA DE FOTO */}
               <div className="border border-slate-800/40 rounded p-4 bg-slate-950/20 space-y-3">
