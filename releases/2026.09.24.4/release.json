@@ -1,0 +1,21 @@
+{
+  "version": "2026.09.24.4",
+  "frontend": {
+    "repository": "https://github.com/gabrielleite03/chateauneuf-portaria-frontend-ai",
+    "commit": "c528e3dbd7f9b2b38e1b978dbc5881acfd56cf6a",
+    "image": "gabrielleite03/chateauneuf-portaria-frontend:2026.09.24.4",
+    "digest": "sha256:9f94366c151224ebc09d53ce9d7e778db850f13c4ef60c20cde66be7a454ca1d"
+  },
+  "backend": {
+    "repository": "https://github.com/gabrielleite03/chateauneuf-portaria-backend",
+    "commit": "a6b835b96deb1706ba0a2e41d6ca9f8f18b90cab",
+    "image": "gabrielleite03/chateauneuf-portaria-backend:2026.09.24.4",
+    "digest": "sha256:b68afab69a1344e09f6998da601d3344bd3cdf3e2941b18815399df54b673199"
+  },
+  "tag": "v2026.09.24.4",
+  "checks": {
+    "frontend_markers": ["inventory-heading", "Estoque de limpeza", "Salvar compra e atualizar estoque"],
+    "resident_vehicles": true,
+    "inventory": true
+  }
+}
