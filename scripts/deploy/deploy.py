@@ -22,6 +22,8 @@ def main():
     parser.add_argument('--release-dir', type=pathlib.Path, required=True)
     parser.add_argument('--base-url', default='http://127.0.0.1:8081')
     parser.add_argument('--check-only', action='store_true')
+    parser.add_argument('--baseline-backup', type=pathlib.Path,
+                        help='Use snapshots from an earlier deploy backup when the API cannot start')
     args = parser.parse_args()
     if not __debug__:
         parser.error('Do not run with -O: deployment checks must remain enabled.')
@@ -32,6 +34,13 @@ def main():
     PROJECT = args.project.resolve()
     RELEASE = args.release_dir.resolve()
     BACKUP = PROJECT / 'backups' / ('before-' + VERSION)
+    baseline = args.baseline_backup.resolve() if args.baseline_backup else None
+    if baseline:
+        if baseline.parent != PROJECT / 'backups':
+            parser.error('Baseline must be an existing project backup')
+        for filename in ['portaria.db', 'access-logs.json', 'reservations.json']:
+            if not (baseline / filename).is_file():
+                parser.error('Missing baseline file: ' + filename)
     COMPOSE = ['docker', 'compose', '--env-file', '.env.docker']
     for filename in ['.env.docker', 'docker-compose.yml', 'data/portaria.db']:
         if not (PROJECT / filename).is_file():
@@ -74,9 +83,9 @@ def main():
         if (PROJECT / filename).exists():
             shutil.copy2(PROJECT / filename, BACKUP / filename)
 
-    reservations_before = json.loads(fetch('/api/reservations'))
+    reservations_before = json.loads((baseline / 'reservations.json').read_text()) if baseline else json.loads(fetch('/api/reservations'))
     (BACKUP / 'reservations.json').write_text(json.dumps(reservations_before))
-    before = logs()
+    before = json.loads((baseline / 'access-logs.json').read_text()) if baseline else logs()
     (BACKUP / 'access-logs.json').write_text(json.dumps(before))
     source = sqlite3.connect((PROJECT / 'data/portaria.db').as_uri() + '?mode=ro', uri=True)
     destination = sqlite3.connect(str(BACKUP / 'portaria.db'))

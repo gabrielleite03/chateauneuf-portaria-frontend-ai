@@ -25,6 +25,13 @@ Para aplicar a versao, execute o mesmo comando sem `--check-only`.
 O parametro opcional `--base-url` tem valor padrao `http://127.0.0.1:8081`.
 O banco esperado fica em `<project>/data/portaria.db`.
 
+Se a API nao iniciar apos uma tentativa de deploy, `--baseline-backup` pode
+apontar para um backup existente em `<project>/backups/before-<versao>`.
+Nesse modo, a comparacao dos registros usa os arquivos `access-logs.json` e
+`reservations.json` daquele backup. O script ainda cria um novo backup do banco
+atual antes de aplicar as imagens corrigidas e executa todas as validacoes finais.
+Esse parametro nao restaura o banco nem descarta registros.
+
 O script verifica os digests locais, cria um backup consistente do SQLite e das
 configuracoes em `<project>/backups/before-<versao>` e atualiza as imagens no
 `.env.docker`. A existencia desse backup impede repetir a mesma operacao.
