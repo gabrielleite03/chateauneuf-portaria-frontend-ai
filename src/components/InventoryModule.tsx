@@ -27,6 +27,9 @@ const InventoryModule: React.FC = () => {
   const [lowOnly, setLowOnly] = useState(false);
   const [product, setProduct] = useState(newProduct);
   const [editing, setEditing] = useState<string | null>(null);
+  const [editPassword, setEditPassword] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<InventoryProduct | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
   const [purchase, setPurchase] = useState(newPurchase);
   const [items, setItems] = useState(() => [newItem()]);
   const [withdrawal, setWithdrawal] = useState(newWithdrawal);
@@ -56,22 +59,23 @@ const InventoryModule: React.FC = () => {
   const save = async (path: string, body: object, reset: () => void) => {
     if (lock.current) return;
     lock.current = true; setBusy(true); setError(''); setNotice('');
-    const signature = JSON.stringify({ path, body });
+    const { password: _password, ...safeBody } = body as Record<string, unknown>;
+    const signature = JSON.stringify({ path, body: safeBody });
     if (pending.current?.signature !== signature) pending.current = { signature, id: inventoryRequestID() };
     try {
       await inventoryRequest(path, { ...body, requestId: pending.current.id });
       pending.current = null; reset(); setNotice('Registro salvo com sucesso.');
       try { await refresh(); } catch { setError('O registro foi salvo, mas não foi possível atualizar a lista. Clique em Atualizar.'); }
     } catch (err) { setError(message(err)); }
-    finally { lock.current = false; setBusy(false); }
+    finally { lock.current = false; setBusy(false); setEditPassword(''); setDeletePassword(''); }
   };
   const disabled = busy || loading || !loaded;
   const quantities = (value: string) => { const n = inventoryDecimal(value, 3); return Number.isFinite(n) && n >= 0 && n <= 100000000 ? n : NaN; };
   const addProduct = (event: React.FormEvent) => {
     event.preventDefault();
-    const minimumMilli = quantities(product.minimum), initialMilli = editing ? 0 : quantities(product.initial);
+    const minimumMilli = quantities(product.minimum), initialMilli = quantities(product.initial);
     if (!Number.isFinite(minimumMilli) || !Number.isFinite(initialMilli)) { setError('Informe quantidades entre 0 e 100.000, com até 3 casas decimais.'); return; }
-    void save(editing ? `/products/${editing}` : '/products', { name: product.name, unit: product.unit, minimumMilli, initialMilli, date: product.date, responsible: product.responsible }, () => { setProduct(newProduct()); setEditing(null); });
+    void save(editing ? `/products/${editing}` : '/products', { name: product.name, unit: product.unit, minimumMilli, initialMilli, date: product.date, responsible: product.responsible, ...(editing ? { password: editPassword } : {}) }, () => { setProduct(newProduct()); setEditing(null); });
   };
   const addPurchase = (event: React.FormEvent) => {
     event.preventDefault();
@@ -88,18 +92,30 @@ const InventoryModule: React.FC = () => {
     const { quantity: _quantity, ...details } = withdrawal;
     void save('/withdrawals', { ...details, quantityMilli }, () => setWithdrawal(newWithdrawal()));
   };
-  const editProduct = (p: InventoryProduct) => { setEditing(p.id); setProduct({ ...newProduct(), name: p.name, unit: p.unit, minimum: String(p.minimumMilli / 1000) }); productForm.current?.querySelector('input')?.focus(); };
+  const editProduct = (p: InventoryProduct) => { setDeleteTarget(null); setDeletePassword(''); setEditPassword(''); setError(''); setEditing(p.id); setProduct({ ...newProduct(), name: p.name, unit: p.unit, minimum: String(p.minimumMilli / 1000), initial: String(p.initialMilli / 1000) }); productForm.current?.querySelector('input')?.focus(); };
+  const removeProduct = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    void save(`/products/${id}/delete`, { password: deletePassword }, () => {
+      setDeleteTarget(null);
+      if (editing === id) { setEditing(null); setProduct(newProduct()); }
+      setItems(rows => rows.map(item => item.productId === id ? { ...item, productId: '' } : item));
+      if (withdrawal.productId === id) setWithdrawal(newWithdrawal());
+    });
+  };
+  const activeProducts = data.products.filter(p => !p.deleted);
   const productByID = new Map<string, InventoryProduct>(data.products.map(p => [p.id, p]));
   const purchaseByID = new Map<string, InventoryPurchase>(data.purchases.map(p => [p.id, p]));
   const lineTotal = (item: ReturnType<typeof newItem>) => { const q = quantities(item.quantity), p = inventoryDecimal(item.price, 2); return Number.isFinite(q) && Number.isFinite(p) && p <= 10000000 ? Math.floor((q * p + 500) / 1000) : 0; };
-  const low = data.products.filter(p => p.stockMilli <= p.minimumMilli);
+  const low = activeProducts.filter(p => p.stockMilli <= p.minimumMilli);
   const month = inventoryToday().slice(0, 7);
   const periodValid = !from || !to || from <= to;
   const inPeriod = (date: string) => periodValid && (!from || date >= from) && (!to || date <= to);
   const purchases = data.purchases.filter(p => inPeriod(p.date) && p.supplier.toLocaleLowerCase().includes(supplier.toLocaleLowerCase()) && (!historyProduct || data.movements.some(m => m.purchaseId === p.id && m.productId === historyProduct)));
   const movements = data.movements.filter(m => inPeriod(m.date) && (!historyKind || m.kind === historyKind) && (!historyProduct || m.productId === historyProduct) && (!supplier || (purchaseByID.get(m.purchaseId)?.supplier ?? '').toLocaleLowerCase().includes(supplier.toLocaleLowerCase())));
-  const visibleProducts = data.products.filter(p => p.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) && (!lowOnly || p.stockMilli <= p.minimumMilli));
-  const selectProduct = (value: string, onChange: (id: string) => void, label = 'Produto') => <label className="block text-xs text-slate-400">{label} *<select required value={value} onChange={event => onChange(event.target.value)} className={inputClass}><option value="">Selecione um produto</option>{data.products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}</select></label>;
+  const visibleProducts = activeProducts.filter(p => p.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) && (!lowOnly || p.stockMilli <= p.minimumMilli));
+  const selectProduct = (value: string, onChange: (id: string) => void, label = 'Produto') => <label className="block text-xs text-slate-400">{label} *<select required value={value} onChange={event => onChange(event.target.value)} className={inputClass}><option value="">Selecione um produto</option>{activeProducts.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}</select></label>;
 
   return <section className="space-y-5 font-mono" aria-labelledby="inventory-heading">
     <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 id="inventory-heading" className="flex items-center gap-2 text-lg font-bold text-emerald-400"><Package size={22} /> Estoque de limpeza</h2><p className="mt-1 text-xs text-slate-400">Produtos, compras e consumo do condomínio.</p></div><button type="button" disabled={busy || loading} onClick={() => { setError(''); void refresh().catch(err => setError(message(err))); }} className={`${secondaryClass} flex items-center gap-2`}><RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Atualizar</button></div>
@@ -107,11 +123,21 @@ const InventoryModule: React.FC = () => {
     {notice && <p role="status" className="text-sm text-emerald-400">{notice}</p>}
     {loading && <p role="status" className="text-sm text-slate-400">Carregando estoque...</p>}
     <div className="grid gap-3 sm:grid-cols-3">{[
-      ['Produtos cadastrados', loaded ? String(data.products.length) : '—'],
+      ['Produtos cadastrados', loaded ? String(activeProducts.length) : '—'],
       ['No mínimo ou abaixo', loaded ? String(low.length) : '—'],
       [`Compras neste mês (${month.split('-').reverse().join('/')})`, loaded ? inventoryMoney(data.purchases.filter(p => p.date.startsWith(month)).reduce((sum, p) => sum + p.totalCents, 0)) : '—'],
     ].map(([label, value]) => <div key={label} className="rounded border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-400">{label}</p><p className="mt-1 text-2xl text-white">{value}</p></div>)}</div>
     <nav aria-label="Controle de estoque" className="flex flex-wrap gap-2">{([['stock', 'Produtos e saldos'], ['purchase', 'Registrar compra'], ['withdrawal', 'Registrar saída'], ['history', 'Histórico']] as const).map(([id, label]) => <button type="button" key={id} disabled={busy} aria-current={tab === id ? 'page' : undefined} onClick={() => { setTab(id); setError(''); setNotice(''); }} className={tab === id ? buttonClass : secondaryClass}>{label}</button>)}</nav>
+
+    {tab === 'stock' && deleteTarget && <form onSubmit={removeProduct} className="space-y-3 rounded border border-red-900 bg-red-950/20 p-4" aria-label="Confirmar exclusão do produto">
+      <fieldset disabled={disabled} className="space-y-3">
+        <legend className="font-bold text-red-300">Excluir {deleteTarget.name}</legend>
+        <p className="text-sm text-slate-300">Este produto sairá da lista de uso e não poderá receber novas compras ou retiradas. O histórico será preservado.</p>
+        <p className="text-xs text-slate-400">Saldo registrado: {inventoryQuantity(deleteTarget.stockMilli)} {deleteTarget.unit}.</p>
+        <Field label="Senha para autorizar a exclusão" type="password" required maxLength={256} value={deletePassword} change={setDeletePassword} />
+        <div className="flex gap-2"><button className="rounded-sm bg-red-800 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50">{busy ? 'Excluindo...' : 'Confirmar exclusão'}</button><button type="button" onClick={() => { setDeleteTarget(null); setDeletePassword(''); }} className={secondaryClass}>Cancelar exclusão</button></div>
+      </fieldset>
+    </form>}
 
     {tab === 'stock' && <div className="grid items-start gap-5 xl:grid-cols-[minmax(280px,1fr)_2fr]">
       <form ref={productForm} onSubmit={addProduct} className="rounded border border-slate-800 bg-slate-950/40 p-4"><fieldset disabled={disabled} className="space-y-3"><legend className="mb-3 text-sm font-bold text-slate-200">{editing ? 'Editar produto' : 'Cadastrar produto'}</legend>
@@ -119,17 +145,25 @@ const InventoryModule: React.FC = () => {
         <label className="block text-xs text-slate-400">Unidade de controle *<select disabled={!!editing || disabled} value={product.unit} onChange={e => setProduct({ ...product, unit: e.target.value })} className={inputClass}>{units.map(unit => <option key={unit}>{unit}</option>)}</select></label>
         <p className="text-xs text-slate-500">Use a mesma unidade nas compras e saídas. Para contar galões fechados, escolha galão e informe o volume no nome.</p>
         <Field label={`Estoque mínimo (${product.unit})`} required type="decimal" value={product.minimum} change={minimum => setProduct({ ...product, minimum })} />
+        {editing && <>
+          <Field label={`Quantidade inicial corrigida (${product.unit})`} required type="decimal" value={product.initial} change={initial => setProduct({ ...product, initial })} />
+          <p className="text-xs text-slate-400">Corrige a quantidade informada no cadastro inicial. As compras e retiradas posteriores continuam sendo consideradas no saldo.</p>
+          <Field label="Senha para autorizar a alteração" type="password" required maxLength={256} value={editPassword} change={setEditPassword} />
+        </>}
         {!editing && <><Field label={`Saldo inicial contado (${product.unit})`} required type="decimal" value={product.initial} change={initial => setProduct({ ...product, initial })} /><p className="text-xs text-slate-500">Conte o que já existe no condomínio. Esse saldo não será contabilizado como compra.</p>{inventoryDecimal(product.initial, 3) > 0 && <><Field label="Data da contagem" type="date" required value={product.date} change={date => setProduct({ ...product, date })} /><Field label="Responsável pela contagem" required maxLength={120} value={product.responsible} change={responsible => setProduct({ ...product, responsible })} /></>}</>}
-        <div className="flex gap-2"><button className={buttonClass}>{busy ? 'Salvando...' : editing ? 'Salvar produto' : 'Cadastrar produto'}</button>{editing && <button type="button" onClick={() => { setEditing(null); setProduct(newProduct()); }} className={secondaryClass}>Cancelar</button>}</div>
+        <div className="flex gap-2"><button className={buttonClass}>{busy ? 'Salvando...' : editing ? 'Salvar produto' : 'Cadastrar produto'}</button>{editing && <button type="button" onClick={() => { setEditing(null); setEditPassword(''); setProduct(newProduct()); }} className={secondaryClass}>Cancelar</button>}</div>
       </fieldset></form>
       <div className="space-y-3"><Field label="Buscar produto" value={search} change={setSearch} /><label className="flex items-center gap-2 text-xs text-slate-400"><input type="checkbox" checked={lowOnly} onChange={e => setLowOnly(e.target.checked)} /> Somente produtos no mínimo ou abaixo</label>
-        <ul className="space-y-2">{visibleProducts.map(p => <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-4"><div className="min-w-0 flex-1"><p className="break-words font-bold text-white">{p.name}</p><p className="mt-1 text-sm text-slate-300">Saldo: {inventoryQuantity(p.stockMilli)} {p.unit} · Mínimo: {inventoryQuantity(p.minimumMilli)} {p.unit}</p>{p.stockMilli <= p.minimumMilli && <p className="mt-1 text-xs text-amber-400">{p.stockMilli === 0 ? 'Sem estoque' : 'Repor estoque'}</p>}</div><button type="button" disabled={disabled} aria-label={`Editar ${p.name}`} onClick={() => editProduct(p)} className={secondaryClass}><Edit3 size={16} /></button></li>)}</ul>
-        {loaded && !visibleProducts.length && <p className="text-sm text-slate-400">{data.products.length ? 'Nenhum produto encontrado para estes filtros.' : 'Comece cadastrando os produtos e o saldo contado no condomínio.'}</p>}
+        <ul className="space-y-2">{visibleProducts.map(p => <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-4">
+          <div className="min-w-0 flex-1"><p className="break-words font-bold text-white">{p.name}</p><p className="mt-1 text-sm text-slate-300">Saldo: {inventoryQuantity(p.stockMilli)} {p.unit} · Mínimo: {inventoryQuantity(p.minimumMilli)} {p.unit}</p><p className="mt-1 text-xs text-slate-400">Quantidade inicial: {inventoryQuantity(p.initialMilli)} {p.unit}</p>{p.stockMilli <= p.minimumMilli && <p className="mt-1 text-xs text-amber-400">{p.stockMilli === 0 ? 'Sem estoque' : 'Repor estoque'}</p>}</div>
+          <div className="flex gap-2"><button type="button" disabled={disabled} aria-label={`Editar ${p.name}`} onClick={() => editProduct(p)} className={secondaryClass}><Edit3 size={16} /></button><button type="button" disabled={disabled} aria-label={`Excluir ${p.name}`} onClick={() => { setDeleteTarget(p); setDeletePassword(''); setEditPassword(''); setError(''); }} className={`${secondaryClass} hover:text-red-400`}><Trash2 size={16} /></button></div>
+        </li>)}</ul>
+        {loaded && !visibleProducts.length && <p className="text-sm text-slate-400">{activeProducts.length ? 'Nenhum produto encontrado para estes filtros.' : 'Comece cadastrando os produtos e o saldo contado no condomínio.'}</p>}
       </div>
     </div>}
 
-    {tab === 'purchase' && <form onSubmit={addPurchase} className="rounded border border-slate-800 bg-slate-950/40 p-4"><fieldset disabled={disabled || !data.products.length} className="space-y-4"><legend className="mb-3 text-sm font-bold text-slate-200">Nova compra</legend>
-      {!data.products.length && <p className="text-sm text-amber-400">Cadastre os produtos em Produtos e saldos antes de registrar a compra.</p>}
+    {tab === 'purchase' && <form onSubmit={addPurchase} className="rounded border border-slate-800 bg-slate-950/40 p-4"><fieldset disabled={disabled || !activeProducts.length} className="space-y-4"><legend className="mb-3 text-sm font-bold text-slate-200">Nova compra</legend>
+      {!activeProducts.length && <p className="text-sm text-amber-400">Cadastre os produtos em Produtos e saldos antes de registrar a compra.</p>}
       <div className="grid gap-3 sm:grid-cols-3"><Field label="Data da compra" type="date" required value={purchase.date} change={date => setPurchase({ ...purchase, date })} /><label className="block text-xs text-slate-400">Fornecedor *<input required list="inventory-suppliers" maxLength={160} value={purchase.supplier} onChange={e => setPurchase({ ...purchase, supplier: e.target.value })} className={inputClass} /><datalist id="inventory-suppliers">{[...new Set(data.purchases.map(p => p.supplier))].map(name => <option key={name} value={name} />)}</datalist></label><Field label="Nota fiscal / comprovante" maxLength={100} value={purchase.document} change={document => setPurchase({ ...purchase, document })} /></div>
       <p className="text-xs text-slate-400">Informe o preço pago por unidade de controle, já considerando descontos. Cada item entra no estoque ao salvar a compra.</p>
       {items.map((item, index) => <div key={item.key} className="grid items-end gap-3 rounded border border-slate-800 p-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_auto]">
@@ -143,8 +177,8 @@ const InventoryModule: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-lg font-bold text-white">Total dos itens: {inventoryMoney(items.reduce((sum, item) => sum + lineTotal(item), 0))}</p><button className={buttonClass}>{busy ? 'Salvando...' : 'Salvar compra e atualizar estoque'}</button></div>
     </fieldset></form>}
 
-    {tab === 'withdrawal' && <form onSubmit={addWithdrawal} className="max-w-3xl rounded border border-slate-800 bg-slate-950/40 p-4"><fieldset disabled={disabled || !data.products.length} className="space-y-3"><legend className="mb-3 text-sm font-bold text-slate-200">Registrar consumo / retirada</legend>
-      {!data.products.length && <p className="text-sm text-amber-400">Cadastre os produtos e registre o saldo inicial ou uma compra antes de retirar.</p>}
+    {tab === 'withdrawal' && <form onSubmit={addWithdrawal} className="max-w-3xl rounded border border-slate-800 bg-slate-950/40 p-4"><fieldset disabled={disabled || !activeProducts.length} className="space-y-3"><legend className="mb-3 text-sm font-bold text-slate-200">Registrar consumo / retirada</legend>
+      {!activeProducts.length && <p className="text-sm text-amber-400">Cadastre os produtos e registre o saldo inicial ou uma compra antes de retirar.</p>}
       {selectProduct(withdrawal.productId, productId => setWithdrawal({ ...withdrawal, productId }))}
       {withdrawal.productId && <p className="text-sm text-emerald-400">Disponível: {inventoryQuantity(productByID.get(withdrawal.productId)?.stockMilli ?? 0)} {productByID.get(withdrawal.productId)?.unit}</p>}
       <div className="grid gap-3 sm:grid-cols-2"><Field label="Quantidade retirada" required type="decimal" value={withdrawal.quantity} change={quantity => setWithdrawal({ ...withdrawal, quantity })} /><Field label="Data da saída" required type="date" value={withdrawal.date} change={date => setWithdrawal({ ...withdrawal, date })} /></div>

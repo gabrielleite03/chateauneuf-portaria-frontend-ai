@@ -1,4 +1,4 @@
-export interface InventoryProduct { id: string; name: string; unit: string; minimumMilli: number; stockMilli: number }
+export interface InventoryProduct { id: string; name: string; unit: string; minimumMilli: number; stockMilli: number; initialMilli: number; deleted: boolean }
 export interface InventoryPurchase { id: string; date: string; supplier: string; document: string; notes: string; totalCents: number }
 export interface InventoryMovement { id: number; productId: string; purchaseId: string; kind: 'initial' | 'purchase' | 'withdrawal'; date: string; quantityMilli: number; unitCostCents: number; totalCents: number; responsible: string; notes: string }
 export interface InventorySnapshot { products: InventoryProduct[]; purchases: InventoryPurchase[]; movements: InventoryMovement[] }
