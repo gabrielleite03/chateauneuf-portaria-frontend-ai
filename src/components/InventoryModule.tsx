@@ -114,7 +114,9 @@ const InventoryModule: React.FC = () => {
   const inPeriod = (date: string) => periodValid && (!from || date >= from) && (!to || date <= to);
   const purchases = data.purchases.filter(p => inPeriod(p.date) && p.supplier.toLocaleLowerCase().includes(supplier.toLocaleLowerCase()) && (!historyProduct || data.movements.some(m => m.purchaseId === p.id && m.productId === historyProduct)));
   const movements = data.movements.filter(m => inPeriod(m.date) && (!historyKind || m.kind === historyKind) && (!historyProduct || m.productId === historyProduct) && (!supplier || (purchaseByID.get(m.purchaseId)?.supplier ?? '').toLocaleLowerCase().includes(supplier.toLocaleLowerCase())));
-  const visibleProducts = activeProducts.filter(p => p.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) && (!lowOnly || p.stockMilli <= p.minimumMilli));
+  const visibleProducts = activeProducts
+    .filter(p => p.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) && (!lowOnly || p.stockMilli <= p.minimumMilli))
+    .sort((a, b) => Number(b.stockMilli <= b.minimumMilli) - Number(a.stockMilli <= a.minimumMilli) || a.name.localeCompare(b.name, 'pt-BR'));
   const selectProduct = (value: string, onChange: (id: string) => void, label = 'Produto') => <label className="block text-xs text-slate-400">{label} *<select required value={value} onChange={event => onChange(event.target.value)} className={inputClass}><option value="">Selecione um produto</option>{activeProducts.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}</select></label>;
 
   return <section className="space-y-5 font-mono" aria-labelledby="inventory-heading">
