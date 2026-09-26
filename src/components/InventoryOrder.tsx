@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { InventoryProduct, inventoryDate, inventoryDecimal, inventoryQuantity, inventoryRequestID, inventoryToday } from '../inventory';
+import { InventoryProduct, inventoryDate, inventoryDecimal, inventoryQuantity, inventoryRequestID, inventorySuggestedPurchase as suggested, inventoryToday } from '../inventory';
 import './InventoryOrder.css';
 
 const inputClass = 'mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white';
 const buttonClass = 'rounded border border-slate-700 px-3 py-2 text-xs text-slate-200 disabled:opacity-50';
-const suggested = (p: InventoryProduct) => Math.max(0, p.minimumMilli - p.stockMilli);
 
 export default function InventoryOrder({ products, active, close }: { products: InventoryProduct[]; active: boolean; close: () => void }) {
   const [items, setItems] = useState(() => products.filter(p => !p.deleted && suggested(p) > 0)
@@ -29,7 +28,7 @@ export default function InventoryOrder({ products, active, close }: { products: 
   return <>
     <form onSubmit={print} className="space-y-4 rounded border border-emerald-900 bg-slate-950 p-4" aria-labelledby="inventory-order-heading">
       <h3 id="inventory-order-heading" className="font-bold text-emerald-400">Fazer pedido</h3>
-      <p className="text-xs text-slate-400">Sugestão de compra: quantidade necessária para atingir o estoque mínimo. Ajuste os itens antes de imprimir. O estoque será atualizado ao registrar a compra recebida.</p>
+      <p className="text-xs text-slate-400">Inclui produtos no mínimo ou abaixo. A sugestão completa o estoque mínimo; quando o saldo já está no mínimo, sugere 1 unidade de controle. Ajuste os itens antes de imprimir. O estoque será atualizado ao registrar a compra recebida.</p>
       {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
       {!items.length && <p className="text-sm text-slate-300">O pedido está vazio. Adicione um produto para começar.</p>}
       {items.map((item, index) => {

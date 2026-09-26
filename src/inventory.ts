@@ -3,6 +3,11 @@ export interface InventoryPurchase { id: string; date: string; supplier: string;
 export interface InventoryMovement { id: number; productId: string; purchaseId: string; kind: 'initial' | 'purchase' | 'withdrawal'; date: string; quantityMilli: number; unitCostCents: number; totalCents: number; responsible: string; notes: string }
 export interface InventorySnapshot { products: InventoryProduct[]; purchases: InventoryPurchase[]; movements: InventoryMovement[] }
 
+export function inventorySuggestedPurchase(product: InventoryProduct): number {
+  if (product.deleted || product.stockMilli > product.minimumMilli) return 0;
+  return product.stockMilli === product.minimumMilli ? 1000 : product.minimumMilli - product.stockMilli;
+}
+
 export async function inventoryRequest<T>(path = '', input?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`/api/inventory${path}`, input === undefined ? { signal } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input), signal });
   const data = await response.json().catch(() => null);
