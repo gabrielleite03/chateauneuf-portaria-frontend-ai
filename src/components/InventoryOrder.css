@@ -1,0 +1,15 @@
+.inventory-order-print { display: none; }
+@media print {
+  body:has(.inventory-order-print) > :not(.inventory-order-print) { display: none !important; }
+  body:has(.inventory-order-print) { background: white !important; color: black !important; }
+  .inventory-order-print { display: block; font: 12pt Arial, sans-serif; color: black; padding: 12mm; }
+  .inventory-order-print h1 { font-size: 20pt; margin-bottom: 6mm; }
+  .inventory-order-print h2 { font-size: 16pt; margin-bottom: 6mm; }
+  .inventory-order-print p { margin: 5mm 0; }
+  .inventory-order-print table { width: 100%; border-collapse: collapse; margin: 6mm 0; }
+  .inventory-order-print th, .inventory-order-print td { border: 1px solid #888; padding: 3mm; text-align: left; overflow-wrap: anywhere; }
+  .inventory-order-print thead { display: table-header-group; }
+  .inventory-order-print tr { break-inside: avoid; }
+  .inventory-order-print .order-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .inventory-order-print .order-signature { margin-top: 15mm; }
+}

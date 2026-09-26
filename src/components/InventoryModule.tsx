@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import InventoryOrder from './InventoryOrder';
 import { Edit3, Package, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { InventoryProduct, InventoryPurchase, InventorySnapshot, inventoryDate, inventoryDecimal, inventoryMoney, inventoryQuantity, inventoryRequest, inventoryRequestID, inventoryToday } from '../inventory';
 
@@ -25,6 +26,7 @@ const InventoryModule: React.FC = () => {
   const [tab, setTab] = useState<Tab>('stock');
   const [search, setSearch] = useState('');
   const [lowOnly, setLowOnly] = useState(false);
+  const [ordering, setOrdering] = useState(false);
   const [product, setProduct] = useState(newProduct);
   const [editing, setEditing] = useState<string | null>(null);
   const [editPassword, setEditPassword] = useState('');
@@ -140,6 +142,9 @@ const InventoryModule: React.FC = () => {
         <div className="flex gap-2"><button className="rounded-sm bg-red-800 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50">{busy ? 'Excluindo...' : 'Confirmar exclusão'}</button><button type="button" onClick={() => { setDeleteTarget(null); setDeletePassword(''); }} className={secondaryClass}>Cancelar exclusão</button></div>
       </fieldset>
     </form>}
+
+    {tab === 'stock' && <button type="button" disabled={disabled || ordering} onClick={() => setOrdering(true)} className={buttonClass}>Fazer pedido</button>}
+    {ordering && <div hidden={tab !== 'stock'}><InventoryOrder products={activeProducts} active={tab === 'stock'} close={() => setOrdering(false)} /></div>}
 
     {tab === 'stock' && <div className="grid items-start gap-5 xl:grid-cols-[minmax(280px,1fr)_2fr]">
       <form ref={productForm} onSubmit={addProduct} className="rounded border border-slate-800 bg-slate-950/40 p-4"><fieldset disabled={disabled} className="space-y-3"><legend className="mb-3 text-sm font-bold text-slate-200">{editing ? 'Editar produto' : 'Cadastrar produto'}</legend>
