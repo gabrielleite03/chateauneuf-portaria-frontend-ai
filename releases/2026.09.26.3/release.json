@@ -1,0 +1,21 @@
+{
+  "version": "2026.09.26.3",
+  "frontend": {
+    "repository": "https://github.com/gabrielleite03/chateauneuf-portaria-frontend-ai",
+    "commit": "3805340a49903c0595bb9e5c0e377cd3a3ebd154",
+    "image": "gabrielleite03/chateauneuf-portaria-frontend:2026.09.26.3",
+    "digest": "sha256:fff1703f47c594d01eaec2d4c67d432dc573c0ba5027d6730d5499e6fb5059eb"
+  },
+  "backend": {
+    "repository": "https://github.com/gabrielleite03/chateauneuf-portaria-backend",
+    "commit": "d283e63ad04943460ae2fbbc1cd6558d737c4810",
+    "image": "gabrielleite03/chateauneuf-portaria-backend:2026.09.26.3",
+    "digest": "sha256:ee328d44da00d53ccd5f7e6eed4dfbb8bb840cfac363005f3a0565f8bd04dd4c"
+  },
+  "tag": "v2026.09.26.3",
+  "checks": {
+    "frontend_markers": ["inventory-order-heading", "inventory-order-print", "Imprimir pedido", "sugere 1 unidade de controle"],
+    "resident_vehicles": true,
+    "inventory": true
+  }
+}
