@@ -1,0 +1,21 @@
+{
+  "version": "2026.09.28.1",
+  "frontend": {
+    "repository": "https://github.com/gabrielleite03/chateauneuf-portaria-frontend-ai",
+    "commit": "4ad575f944a8babfdf6d6e95b1bf4e062493f1bb",
+    "image": "gabrielleite03/chateauneuf-portaria-frontend:2026.09.28.1",
+    "digest": "sha256:9ef045aec15a161e85205617681ec113f898084405009e4aef94d5f374da25d9"
+  },
+  "backend": {
+    "repository": "https://github.com/gabrielleite03/chateauneuf-portaria-backend",
+    "commit": "fc16be493d077b820db9bb62baa9f0f73ef859e5",
+    "image": "gabrielleite03/chateauneuf-portaria-backend:2026.09.28.1",
+    "digest": "sha256:5f7fb915a59809e53734fd57f5eac8178a9e2050d8fadd851a415ab566c0cf81"
+  },
+  "tag": "v2026.09.28.1",
+  "checks": {
+    "frontend_markers": ["Excluir entrada incorreta", "Senha para autorizar", "inventory-order-heading"],
+    "resident_vehicles": true,
+    "inventory": true
+  }
+}
