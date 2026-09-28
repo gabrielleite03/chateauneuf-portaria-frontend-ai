@@ -6,6 +6,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Briefcase, Car, ChevronRight, Clock, FileText, Landmark, LogOut, Package, QrCode, RefreshCw, Search, UserRound, WifiOff, X } from 'lucide-react';
 import QRCode from 'qrcode';
+import DeleteDelivery from './DeleteDelivery';
 import { createPortal } from 'react-dom';
 import { ShoppingDelivery, Visit } from '../types';
 import { createDeliveryWithdrawalCode, fetchDeliveryWithdrawalStatus } from '../api';
@@ -15,6 +16,7 @@ interface ActiveVisitsProps {
   shoppingDeliveries: ShoppingDelivery[];
   onRegisterExit: (id: string) => Promise<void>;
   onWithdrawShopping: (id: string) => Promise<void>;
+  onDeleteShopping: (id: string) => void;
   isInternetOnline: boolean;
   onForceSync: () => Promise<void>;
 }
@@ -24,6 +26,7 @@ export default function ActiveVisits({
   shoppingDeliveries,
   onRegisterExit,
   onWithdrawShopping,
+  onDeleteShopping,
   isInternetOnline,
   onForceSync,
 }: ActiveVisitsProps) {
@@ -511,6 +514,7 @@ export default function ActiveVisits({
                     <span>Registrar Retirada</span>
                   </button>
                 </div>
+                <DeleteDelivery id={delivery.id} onDeleted={id => { setWithdrawalSession(null); setSelectedRecord(null); onDeleteShopping(id); }} />
               </div>
             ))}
           </div>

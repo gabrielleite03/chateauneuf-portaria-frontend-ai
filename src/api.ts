@@ -135,6 +135,10 @@ export async function fetchShoppingDeliveries(): Promise<ShoppingDelivery[]> {
   return request<ShoppingDelivery[]>('/api/shopping');
 }
 
+export async function deleteShoppingDelivery(id: string, password: string): Promise<void> {
+  await request(`/api/shopping/${encodeURIComponent(id)}/delete`, { method: 'POST', body: JSON.stringify({ password }) });
+}
+
 export async function fetchKeyRecords(): Promise<KeyRecord[]> {
   return request<KeyRecord[]>('/api/keys');
 }

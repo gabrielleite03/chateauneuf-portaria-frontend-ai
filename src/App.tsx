@@ -309,6 +309,7 @@ export default function App() {
                     shoppingDeliveries={shoppingDeliveries}
                     onRegisterExit={handleRegisterExit}
                     onWithdrawShopping={handleWithdrawShopping}
+                    onDeleteShopping={id => { setShoppingDeliveries(rows => rows.filter(row => row.id !== id)); showToast('Entrada de entrega excluída.', 'success'); }}
                     isInternetOnline={syncStatus.isInternetOnline}
                     onForceSync={handleManualSync}
                   />
