@@ -65,3 +65,5 @@ python3 /home/chateauneuf/releases/2026.10.01.1/deploy-detection.py \
 ```
 
 O script cria backup consistente do SQLite e das configurações, gera uma chave exclusiva no servidor, registra o overlay em `COMPOSE_FILE` no `.env.docker` e inicia primeiro a IA. Só troca o frontend depois de uma análise real do canal 12. Confere o proxy, versões, preservação dos registros e IDs dos serviços existentes. Em caso de falha, restaura as configurações/frontend e remove somente os novos serviços; não restaura nem apaga o banco. O relatório operacional permanece no servidor. O agendamento do frontend continua dependendo do navegador aberto.
+
+Para atualizações somente do frontend, use `deploy-frontend.py` com os mesmos parâmetros `--project`, `--release-dir` e `--check-only`. O manifesto deve conter a imagem, commit, arquivo/checksum e ID da imagem do frontend, além de `checks.frontend_markers`. Esse caminho preserva todos os demais serviços, confere registros existentes e faz backup/rollback do frontend sem restaurar o banco.

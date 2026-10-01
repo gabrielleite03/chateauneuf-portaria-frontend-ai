@@ -405,7 +405,7 @@ export default function App() {
       </footer>
 
       <CameraViewerPanel />
-      <PeopleDetectionAlert result={detection.alert} onClose={detection.dismissAlert} onOpen={() => setActiveTab('detection')} />
+      <PeopleDetectionAlert result={detection.alert} pendingCount={detection.pendingAlerts} onClose={detection.dismissAlert} onOpen={() => setActiveTab('detection')} />
     </div>
   );
 }

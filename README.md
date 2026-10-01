@@ -449,9 +449,11 @@ Importante: compartilhe a planilha Google com o e-mail do service account que es
 
 ## Detecção de pessoas
 
-O menu **Detecção de pessoas** permite selecionar um dos 16 canais, informar início e término e agendar verificações ao vivo a cada 15 segundos. Há também análise manual, pausa, prévia da câmera e histórico das últimas 30 detecções positivas da sessão.
+O menu **Detecção de pessoas** permite selecionar vários dos 16 canais, informar início e término e agendar verificações ao vivo no mesmo período. Há também análise manual, pausa, prévia da câmera e histórico das últimas 30 detecções positivas da sessão.
 
 O popup informa câmera, quantidade de pessoas, horário da análise e maior confiança. Ele aparece em qualquer menu. Alertas automáticos da mesma câmera são limitados a um por minuto; análises manuais positivas sempre abrem o popup. Erros são exibidos como falhas, não como resultados vazios.
+
+As câmeras selecionadas são analisadas em rodízio, uma por vez, com intervalo mínimo de 15 segundos entre tentativas da mesma câmera. Rodadas com muitas câmeras podem demorar mais. Uma falha não interrompe as demais; cada câmera tem resultado e erro próprios. Os popups ficam em fila, com no máximo um alerta pendente por câmera. Agendamentos antigos de uma câmera são migrados automaticamente.
 
 O agendamento é único por navegador e fica no localStorage. Ele continua ao trocar de menu, mas exige página aberta, computador ligado e navegador não suspenso. Não executa com a página fechada. Ao reabrir dentro do período salvo, retoma as verificações; períodos encerrados não são executados retroativamente. Horários seguem o computador, não o relógio sobreposto pelo DVR. O histórico da sessão não é persistido.
 
