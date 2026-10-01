@@ -1,0 +1,32 @@
+﻿{
+    "version":  "2026.10.01.1",
+    "tag":  "v2026.10.01.1",
+    "delivery":  "ssh-docker-save",
+    "frontend":  {
+                     "repository":  "https://github.com/gabrielleite03/chateauneuf-portaria-frontend-ai",
+                     "commit":  "ecbd1000768206df0eb71039d641aeacf09f1409",
+                     "image":  "chateauneuf-portaria-frontend:2026.10.01.1",
+                     "image_id":  "sha256:9e6ac35a41471d7b7340395405d88e3a9387c08464621d47838b4f6fb8d76a89",
+                     "archive":  "frontend.tar",
+                     "archive_sha256":  "6155ff3d6c59acd404f4cef891d1b487c334a7cffabe9eccd34d113b94b0be69"
+                 },
+    "analyzer":  {
+                     "repository":  "https://github.com/gabrielleite03/chateauneuf-image-analyzer",
+                     "commit":  "aadd8655b118a6423d8f4a76610c790473f9e7fc",
+                     "image":  "chateauneuf-image-analyzer:2026.10.01.1",
+                     "image_id":  "sha256:a67ae4b3cfa89d16f51afc8d584498095f4dcf1f2769851acf5c08abfb807d22",
+                     "archive":  "analyzer.tar",
+                     "archive_sha256":  "af796f290aacb9bd988027061336c10ba940f9e55f283ccebc11c741fc6d741b"
+                 },
+    "engine":  {
+                   "image":  "codeproject/ai-server:2.9.5",
+                   "digest":  "sha256:8c11c8267bb8ed078fefa1acc19dd0d8eefaa05e8abb97e1e1e2fadaccf46bf3",
+                   "model":  "YOLOv5 small",
+                   "device":  "CPU"
+               },
+    "backend":  {
+                    "action":  "unchanged",
+                    "version":  "2026.09.28.2",
+                    "commit":  "eedf98de77ae246746db1b3f73b137ac2fee1905"
+                }
+}
