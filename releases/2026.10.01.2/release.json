@@ -1,0 +1,28 @@
+﻿{
+    "version":  "2026.10.01.2",
+    "tag":  "v2026.10.01.2",
+    "delivery":  "ssh-docker-save",
+    "frontend":  {
+                     "repository":  "https://github.com/gabrielleite03/chateauneuf-portaria-frontend-ai",
+                     "commit":  "a74f38614a7320b56236862e5f0082c1fea27a29",
+                     "image":  "chateauneuf-portaria-frontend:2026.10.01.2",
+                     "image_id":  "sha256:1f31153725994576a8c8079f2474ed0bbdf9bf2e36d57e3b9ce8eb2a0e7a998c",
+                     "archive":  "frontend.tar",
+                     "archive_sha256":  "eb43fd3923320156cb702b78d7fd7750c635d4c7cb15bd16f6d22da16455f7cb"
+                 },
+    "checks":  {
+                   "frontend_markers":  [
+                                            "Selecionar todas",
+                                            "Câmeras monitoradas",
+                                            "Limpar seleção"
+                                        ]
+               },
+    "analyzer":  {
+                     "version":  "2026.10.01.1",
+                     "action":  "unchanged"
+                 },
+    "backend":  {
+                    "version":  "2026.09.28.2",
+                    "action":  "unchanged"
+                }
+}
