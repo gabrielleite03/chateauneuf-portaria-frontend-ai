@@ -19,8 +19,12 @@ import SyncSettings from './components/SyncSettings';
 import ReservationsModule from './components/ReservationsModule';
 import InternetAccessModule from './components/InternetAccessModule';
 import CameraViewerPanel from './components/CameraViewerPanel';
+import PeopleDetectionModule from './components/PeopleDetectionModule';
+import PeopleDetectionAlert from './components/PeopleDetectionAlert';
+import usePeopleDetection from './components/usePeopleDetection';
+import { ScanSearch } from 'lucide-react';
 
-type Tab = 'control' | 'residents' | 'inventory' | 'internet' | 'diaristas' | 'scheduled' | 'reservations' | 'shopping' | 'keys' | 'history' | 'status';
+type Tab = 'control' | 'residents' | 'inventory' | 'internet' | 'diaristas' | 'scheduled' | 'reservations' | 'shopping' | 'keys' | 'history' | 'status' | 'detection';
 type ThemeMode = 'light' | 'dark';
 
 function getTimeTheme(date = new Date()): ThemeMode {
@@ -33,6 +37,7 @@ function normalizeDocument(value: string) {
 }
 
 export default function App() {
+  const detection = usePeopleDetection();
   const [visits, setVisits] = useState<Visit[]>([]);
   const [shoppingDeliveries, setShoppingDeliveries] = useState<ShoppingDelivery[]>([]);
   const [keyRecords, setKeyRecords] = useState<KeyRecord[]>([]);
@@ -256,6 +261,7 @@ export default function App() {
             <TabButton active={activeTab === 'keys'} onClick={() => setActiveTab('keys')} icon={<Key size={14} />}>
               Controle de Chaves
             </TabButton>
+            <TabButton active={activeTab === 'detection'} onClick={() => setActiveTab('detection')} icon={<ScanSearch size={14} />}>Detecção de pessoas {detection.error ? '· Falha' : detection.phase === 'active' ? '· Ativo' : detection.phase === 'waiting' ? '· Agendado' : ''}</TabButton>
             <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={14} />}>
               Historico Geral
             </TabButton>
@@ -321,6 +327,7 @@ export default function App() {
               <ResidentsModule showToast={showToast} isInternetOnline={syncStatus.isInternetOnline} />
             )}
             {activeTab === 'inventory' && <InventoryModule />}
+            {activeTab === 'detection' && <PeopleDetectionModule controller={detection} />}
             {activeTab === 'internet' && <InternetAccessModule showToast={showToast} />}
 
             {activeTab === 'diaristas' && (
@@ -398,6 +405,7 @@ export default function App() {
       </footer>
 
       <CameraViewerPanel />
+      <PeopleDetectionAlert result={detection.alert} onClose={detection.dismissAlert} onOpen={() => setActiveTab('detection')} />
     </div>
   );
 }

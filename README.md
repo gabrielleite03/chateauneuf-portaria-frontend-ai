@@ -446,3 +446,25 @@ Importante: compartilhe a planilha Google com o e-mail do service account que es
    ```text
    http://localhost:8081
    ```
+
+## Detecção de pessoas
+
+O menu **Detecção de pessoas** permite selecionar um dos 16 canais, informar início e término e agendar verificações ao vivo a cada 15 segundos. Há também análise manual, pausa, prévia da câmera e histórico das últimas 30 detecções positivas da sessão.
+
+O popup informa câmera, quantidade de pessoas, horário da análise e maior confiança. Ele aparece em qualquer menu. Alertas automáticos da mesma câmera são limitados a um por minuto; análises manuais positivas sempre abrem o popup. Erros são exibidos como falhas, não como resultados vazios.
+
+O agendamento é único por navegador e fica no localStorage. Ele continua ao trocar de menu, mas exige página aberta, computador ligado e navegador não suspenso. Não executa com a página fechada. Ao reabrir dentro do período salvo, retoma as verificações; períodos encerrados não são executados retroativamente. Horários seguem o computador, não o relógio sobreposto pelo DVR. O histórico da sessão não é persistido.
+
+Para desenvolvimento, configure `.env.local` (não versionado):
+
+```dotenv
+ANALYZER_URL=http://localhost:8090
+ANALYZER_API_KEY=<mesma chave do chateauneuf-image-analyzer>
+STREAM_URL=http://localhost:18082
+```
+
+Execute `npm run dev`. A chave é usada exclusivamente pelo proxy Vite; não utilize prefixo `VITE_` para esse segredo. O browser chama `/analyzer-api/api/analysis` sem receber a chave. A prévia usa `/stream-api`.
+
+Em Docker, configure `ANALYZER_API_KEY` e `ANALYZER_URL` no arquivo de ambiente usado pelo compose. O padrão de URL é `http://host.docker.internal:8090` para o analyzer publicado no host; se estiver na mesma rede Docker, informe o endereço do serviço. O Nginx injeta a chave no proxy e resolve o destino em tempo de requisição. O analyzer e o motor precisam estar ativos separadamente. Uma chave vazia permite iniciar o frontend, mas as análises responderão com erro de configuração/autenticação.
+
+A prévia é uma captura independente e não representa necessariamente o frame do alerta. A ausência de detecções não comprova ausência de pessoas, especialmente com resolução baixa e oclusão.

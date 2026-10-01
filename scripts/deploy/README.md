@@ -50,3 +50,18 @@ As migracoes devem ser compativeis com as imagens anteriores para esse rollback.
 O relatorio `deployment-report.json` fica em `--release-dir`. Backups, bancos,
 relatorios operacionais e arquivos de imagens permanecem fora do Git. O manifesto
 da versao e o script sao os arquivos versionados.
+
+## Release de detecção (frontend + analyzer)
+
+`deploy-detection.py` instala o frontend e os novos serviços de IA sem reiniciar backend, autenticação ou stream. Use `docker-compose.detection.yml` e `detection-engine-settings.json` junto ao manifesto. O motor executa apenas YOLOv5 small em CPU, com limites para o servidor de 4 GB.
+
+As imagens próprias podem ser entregues por SSH como arquivos `docker save`, sem registro público. Para cada uma, o manifesto registra `image`, `commit`, `image_id`, `archive` e `archive_sha256`. O motor de terceiros registra `image` e `digest`. Transfira os arquivos ao diretório da release e execute `docker load -i <arquivo>` no servidor. O deploy confere checksum, IDs das imagens e digest do motor antes de alterar o ambiente.
+
+```sh
+python3 /home/chateauneuf/releases/2026.10.01.1/deploy-detection.py \
+  --project /home/chateauneuf/ChateauneufPortaria \
+  --release-dir /home/chateauneuf/releases/2026.10.01.1 --check-only
+# Depois da pré-validação, executar sem --check-only.
+```
+
+O script cria backup consistente do SQLite e das configurações, gera uma chave exclusiva no servidor, registra o overlay em `COMPOSE_FILE` no `.env.docker` e inicia primeiro a IA. Só troca o frontend depois de uma análise real do canal 12. Confere o proxy, versões, preservação dos registros e IDs dos serviços existentes. Em caso de falha, restaura as configurações/frontend e remove somente os novos serviços; não restaura nem apaga o banco. O relatório operacional permanece no servidor. O agendamento do frontend continua dependendo do navegador aberto.

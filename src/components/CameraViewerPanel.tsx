@@ -1,32 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, ChevronDown, Expand, MonitorPlay, X } from 'lucide-react';
 
-type CameraChannel = {
-  id: string;
-  label: string;
-  url: string;
-};
+import { cameras } from '../cameras';
 
-const STREAM_API_BASE = '/stream-api';
-
-const cameraChannels: CameraChannel[] = [
-  { id: '3', label: 'Rampa', url: `${STREAM_API_BASE}/api/camera/live?channel=3` },
-  { id: '1', label: 'Lateral Venezas', url: `${STREAM_API_BASE}/api/camera/live?channel=1` },
-  { id: '2', label: 'Lixeiras', url: `${STREAM_API_BASE}/api/camera/live?channel=2` },
-  { id: '4', label: 'Portão Serviço', url: `${STREAM_API_BASE}/api/camera/live?channel=4` },
-  { id: '5', label: 'Calçada', url: `${STREAM_API_BASE}/api/camera/live?channel=5` },
-  { id: '6', label: 'Portão Social', url: `${STREAM_API_BASE}/api/camera/live?channel=6` },
-  { id: '7', label: 'Entrada Serviço', url: `${STREAM_API_BASE}/api/camera/live?channel=7` },
-  { id: '8', label: 'Portão Garagem', url: `${STREAM_API_BASE}/api/camera/live?channel=8` },
-  { id: '9', label: 'Elevador Serviço', url: `${STREAM_API_BASE}/api/camera/live?channel=9` },
-  { id: '10', label: 'Hall da Entrada', url: `${STREAM_API_BASE}/api/camera/live?channel=10` },
-  { id: '11', label: 'Elevador social', url: `${STREAM_API_BASE}/api/camera/live?channel=11` },
-  { id: '12', label: 'Guarita', url: `${STREAM_API_BASE}/api/camera/live?channel=12` },
-  { id: '13', label: 'Parquinho', url: `${STREAM_API_BASE}/api/camera/live?channel=13` },
-  { id: '14', label: 'Piscina', url: `${STREAM_API_BASE}/api/camera/live?channel=14` },
-  { id: '15', label: 'Garagem S1', url: `${STREAM_API_BASE}/api/camera/live?channel=15` },
-  { id: '16', label: 'Garagem S2', url: `${STREAM_API_BASE}/api/camera/live?channel=16` },
-];
+const cameraChannels = cameras.map(camera => ({
+  id: String(camera.id), label: camera.label, url: `/stream-api/api/camera/live?channel=${camera.id}`,
+}));
 
 export default function CameraViewerPanel() {
   const videoContainerRef = useRef<HTMLDivElement>(null);

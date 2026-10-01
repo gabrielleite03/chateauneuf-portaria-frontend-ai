@@ -98,6 +98,10 @@ services:
       - stream
     environment:
       AUTH_ADMIN_TOKEN: ${AUTH_ADMIN_TOKEN:?AUTH_ADMIN_TOKEN obrigatorio}
+      ANALYZER_URL: ${ANALYZER_URL:-http://host.docker.internal:8090}
+      ANALYZER_API_KEY: ${ANALYZER_API_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${FRONTEND_PORT:-8081}:80"
       - "${FRONTEND_HTTPS_PORT:-8443}:443"

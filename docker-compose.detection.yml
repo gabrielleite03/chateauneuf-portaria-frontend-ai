@@ -1,0 +1,38 @@
+services:
+  frontend:
+    environment:
+      ANALYZER_URL: http://image-analyzer:8090
+      ANALYZER_API_KEY: ${ANALYZER_API_KEY:?Configure ANALYZER_API_KEY}
+
+  image-analyzer:
+    image: ${ANALYZER_IMAGE:?Configure ANALYZER_IMAGE}
+    environment:
+      SERVER_ADDR: 0.0.0.0:8090
+      STREAM_URL: http://stream:8082
+      ANALYZER_API_KEY: ${ANALYZER_API_KEY:?Configure ANALYZER_API_KEY}
+      INFERENCE_PROVIDER: codeproject
+      INFERENCE_URL: http://people-engine:32168/v1/vision/detection
+      MIN_CONFIDENCE: "0.5"
+    ports:
+      - "127.0.0.1:8090:8090"
+    mem_limit: 192m
+    cpus: 0.5
+    restart: unless-stopped
+
+  people-engine:
+    image: ${PEOPLE_ENGINE_IMAGE:?Configure PEOPLE_ENGINE_IMAGE}
+    environment:
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    volumes:
+      - people-engine-data:/etc/codeproject/ai
+      - people-engine-modules:/app/modules
+      - ./detection-engine-settings.json:/etc/codeproject/ai/serversettings.json:ro
+    mem_limit: 1280m
+    cpus: 1.0
+    restart: unless-stopped
+
+volumes:
+  people-engine-data:
+  people-engine-modules:

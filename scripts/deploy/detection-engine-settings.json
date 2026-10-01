@@ -1,0 +1,17 @@
+{
+  "Modules": {
+    "FaceProcessing": {
+      "LaunchSettings": { "AutoStart": false }
+    },
+    "ObjectDetectionYOLOv5-6.2": {
+      "LaunchSettings": { "AutoStart": true, "Parallelism": 1 },
+      "EnvironmentVariables": {
+        "MODEL_SIZE": "small",
+        "USE_CUDA": "False",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1"
+      }
+    }
+  }
+}
