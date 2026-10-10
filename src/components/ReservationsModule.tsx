@@ -482,9 +482,11 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
                     <button key={reservation.id} type="button" id={`reservation-card-${reservation.id}`}
                       onClick={() => setSelectedReservationId(reservation.id)} aria-haspopup="dialog"
                       aria-label={`${reservation.id === nextReservation?.id ? 'Próximo evento: ' : ''}Abrir reserva de ${area}, apartamento ${reservation.unit}, ${formatDate(reservation.reservationDate)}`}
-                      className={`w-full rounded-sm border p-3 text-left transition hover:bg-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 ${reservation.id === nextReservation?.id ? 'border-amber-400/70 bg-amber-950/25 ring-1 ring-amber-400/20' : 'border-slate-800 bg-slate-950/60'} ${index === 0 ? 'hover:border-emerald-500/60 focus-visible:outline-emerald-400' : 'hover:border-cyan-500/60 focus-visible:outline-cyan-400'}`}>
+                      className={`w-full rounded-sm border p-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 ${reservation.id === nextReservation?.id
+                        ? 'border-amber-300 border-l-4 bg-amber-900/50 ring-2 ring-amber-400/60 shadow-lg shadow-amber-500/15 hover:border-amber-200 hover:bg-amber-900/70 focus-visible:outline-amber-300'
+                        : `border-slate-800 bg-slate-950/60 hover:bg-slate-900 ${index === 0 ? 'hover:border-emerald-500/60 focus-visible:outline-emerald-400' : 'hover:border-cyan-500/60 focus-visible:outline-cyan-400'}`}`}>
                       {reservation.id === nextReservation?.id && (
-                        <span className="mb-3 inline-flex items-center gap-1.5 rounded-sm border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                        <span className="mb-3 flex items-center gap-1.5 rounded-sm bg-amber-300 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-950">
                           <Clock size={12} /> Próximo evento
                         </span>
                       )}
