@@ -1,0 +1,20 @@
+{
+    "version":  "2026.10.10.1",
+    "tag":  "v2026.10.10.1",
+    "delivery":  "ssh-docker-save",
+    "frontend":  {
+                     "repository":  "https://github.com/gabrielleite03/chateauneuf-portaria-frontend-ai",
+                     "commit":  "6ae26ccd782ef3ffee01cb3a0c20f404e4713475",
+                     "image":  "chateauneuf-portaria-frontend:2026.10.10.1",
+                     "image_id":  "sha256:64f3f8a0f7e6e3fba8b53a19d1a8ea10976115598d524cb7ae238496ac332709",
+                     "archive":  "frontend.tar",
+                     "archive_sha256":  "33a2c2311d60fd3461e538b1e9dc5d141e520adef9730e8e6dc987bb8745ade7"
+                 },
+    "checks":  {
+                   "frontend_markers":  [
+                                            "Próximo evento",
+                                            "reservation-columns",
+                                            "border-amber-400/70"
+                                        ]
+               }
+}
