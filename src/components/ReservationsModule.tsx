@@ -56,6 +56,7 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
   const dateBounds = reservationDateBounds();
   const [reservations, setReservations] = useState<CommonAreaReservation[]>([]);
+  const [now, setNow] = useState(Date.now);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,6 +94,20 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
   useEffect(() => {
     loadReservations();
   }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const nextReservation = useMemo(() => {
+    return reservations.reduce<CommonAreaReservation | undefined>((next, reservation) => {
+      const startsAt = new Date(`${reservation.reservationDate}T${reservation.startTime}`).getTime();
+      if (reservation.status !== 'reservada' || !Number.isFinite(startsAt) || startsAt < now) return next;
+      const nextStartsAt = next ? new Date(`${next.reservationDate}T${next.startTime}`).getTime() : Infinity;
+      return startsAt < nextStartsAt ? reservation : next;
+    }, undefined);
+  }, [reservations, now]);
 
   useEffect(() => {
     if (!reservations.some(item => item.syncStatus !== 'synced')) return;
@@ -137,7 +152,7 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
       const matchesArea = areaFilter === 'todos' || reservation.area === areaFilter;
       const matchesStatus = statusFilter === 'todos' || reservation.status === statusFilter;
       return matchesSearch && matchesArea && matchesStatus;
-    });
+    }).sort((a, b) => b.reservationDate.localeCompare(a.reservationDate) || b.startTime.localeCompare(a.startTime));
   }, [areaFilter, reservations, searchTerm, statusFilter]);
 
   const selectedReservation = reservations.find(item => item.id === selectedReservationId);
@@ -466,8 +481,13 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
                   {items.map(reservation => (
                     <button key={reservation.id} type="button" id={`reservation-card-${reservation.id}`}
                       onClick={() => setSelectedReservationId(reservation.id)} aria-haspopup="dialog"
-                      aria-label={`Abrir reserva de ${area}, apartamento ${reservation.unit}, ${formatDate(reservation.reservationDate)}`}
-                      className={`w-full rounded-sm border border-slate-800 bg-slate-950/60 p-3 text-left transition hover:bg-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 ${index === 0 ? 'hover:border-emerald-500/60 focus-visible:outline-emerald-400' : 'hover:border-cyan-500/60 focus-visible:outline-cyan-400'}`}>
+                      aria-label={`${reservation.id === nextReservation?.id ? 'Próximo evento: ' : ''}Abrir reserva de ${area}, apartamento ${reservation.unit}, ${formatDate(reservation.reservationDate)}`}
+                      className={`w-full rounded-sm border p-3 text-left transition hover:bg-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 ${reservation.id === nextReservation?.id ? 'border-amber-400/70 bg-amber-950/25 ring-1 ring-amber-400/20' : 'border-slate-800 bg-slate-950/60'} ${index === 0 ? 'hover:border-emerald-500/60 focus-visible:outline-emerald-400' : 'hover:border-cyan-500/60 focus-visible:outline-cyan-400'}`}>
+                      {reservation.id === nextReservation?.id && (
+                        <span className="mb-3 inline-flex items-center gap-1.5 rounded-sm border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                          <Clock size={12} /> Próximo evento
+                        </span>
+                      )}
                       <span className="flex flex-wrap items-start justify-between gap-2">
                         <span className="min-w-0 flex-1">
                           <span className="block text-[10px] uppercase tracking-wider text-slate-500">Apartamento</span>
