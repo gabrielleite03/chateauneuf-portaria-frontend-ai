@@ -67,3 +67,9 @@ python3 /home/chateauneuf/releases/2026.10.01.1/deploy-detection.py \
 O script cria backup consistente do SQLite e das configurações, gera uma chave exclusiva no servidor, registra o overlay em `COMPOSE_FILE` no `.env.docker` e inicia primeiro a IA. Só troca o frontend depois de uma análise real do canal 12. Confere o proxy, versões, preservação dos registros e IDs dos serviços existentes. Em caso de falha, restaura as configurações/frontend e remove somente os novos serviços; não restaura nem apaga o banco. O relatório operacional permanece no servidor. O agendamento do frontend continua dependendo do navegador aberto.
 
 Para atualizações somente do frontend, use `deploy-frontend.py` com os mesmos parâmetros `--project`, `--release-dir` e `--check-only`. O manifesto deve conter a imagem, commit, arquivo/checksum e ID da imagem do frontend, além de `checks.frontend_markers`. Esse caminho preserva todos os demais serviços, confere registros existentes e faz backup/rollback do frontend sem restaurar o banco.
+
+## Release de visualizacao da camera IP
+
+`deploy-camera17.py --project <diretorio-compose> --release-dir <diretorio-release>` publica somente frontend e stream. O `release.json` deve conter `version` e entradas `frontend`/`stream` com `commit`, `image`, `image_id`, `artifact` e `sha256`. As imagens devem estar carregadas e conter o label `org.opencontainers.image.revision` correspondente. O segredo `secrets/camera17.env` permanece somente no servidor.
+
+O script verifica checksums, imagem e commit, faz backup das configuracoes, preserva os demais servicos e valida capturas dos canais 17/12/1, tres imagens completas do fluxo ao vivo e identificacao do frontend. Em caso de falha, restaura a configuracao anterior. Nao altera o banco nem grava conteudo de cameras. A entrega atual e executada via SSH na rede local; nao depende de runners hospedados acessarem o IP privado.

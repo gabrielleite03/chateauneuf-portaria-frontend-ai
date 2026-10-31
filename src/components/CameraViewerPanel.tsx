@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, ChevronDown, Expand, MonitorPlay, X } from 'lucide-react';
 
-import { cameras } from '../cameras';
+import { viewingCameras } from '../cameras';
 
-const cameraChannels = cameras.map(camera => ({
+const cameraChannels = viewingCameras.map(camera => ({
   id: String(camera.id), label: camera.label, url: `/stream-api/api/camera/live?channel=${camera.id}`,
 }));
 

@@ -10,3 +10,6 @@ export const cameras = [
 ];
 
 export const cameraName = (channel: number) => cameras.find(camera => camera.id === channel)?.label ?? `Canal ${channel}`;
+
+// IP camera is available for viewing only.
+export const viewingCameras = [...cameras, { id: 17, label: 'Guarita IP' }];
