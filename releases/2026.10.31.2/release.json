@@ -1,0 +1,29 @@
+{
+  "version": "2026.10.31.2",
+  "delivery": "ssh-local-build",
+  "checks": {
+    "frontend_markers": [
+      "Guarita IP"
+    ],
+    "snapshot_channels": [
+      17,
+      12,
+      1
+    ],
+    "recording_enabled": false
+  },
+  "stream": {
+    "commit": "b26f86e94cb293c2ca58514514472a583082717e",
+    "image": "chateauneuf-stream:2026.10.31.2",
+    "image_id": "sha256:b8c95ec30309cf8a637e9843215ef6ca0f777ec6d1f470827ef405324af403dc",
+    "artifact": "camera17-stream",
+    "sha256": "330f92532f631f337693e69f1f54ede09227b9769d23d3f85049b1f6ce8ebbd7"
+  },
+  "frontend": {
+    "commit": "f641b2258ab75a518e979ba1ec639651f818845c",
+    "image": "chateauneuf-frontend:2026.10.31.2",
+    "image_id": "sha256:db01eef40d27ff8c2489fe7390af78756ce67cc564a4055a36c980021b2693b1",
+    "artifact": "camera17-dist.tar.gz",
+    "sha256": "c492461fc6cf735a285aef182f6cfaabd9788815ca4f5edbecf8adfa5f9b16bb"
+  }
+}
