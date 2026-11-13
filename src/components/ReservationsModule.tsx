@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Ban, CalendarDays, ChevronRight, Clock, Eye, MapPin, PartyPopper, Plus, RefreshCw, Search, Trash2, User, Users, X } from 'lucide-react';
+import { AlertTriangle, Ban, CalendarDays, ChevronRight, Clock, Eye, MapPin, PartyPopper, Plus, RefreshCw, Search, Trash2, User, Users, X } from 'lucide-react';
 import { CommonAreaReservation } from '../types';
 import { createReservation, createReservationSignatureCode, deleteReservation, fetchReservations, updateReservationStatus } from '../api';
 import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
@@ -45,6 +45,11 @@ function reservationDateBounds() {
 
 function canCancelReservation(reservation: CommonAreaReservation) {
   return daysUntilReservation(reservation.reservationDate) >= CANCELLATION_LIMIT_DAYS;
+}
+
+function hasOverdueSignature(reservation: CommonAreaReservation, now: number) {
+  const endsAt = new Date(`${reservation.reservationDate}T${reservation.endTime}`).getTime();
+  return reservation.status !== 'cancelada' && !reservation.signed && Number.isFinite(endsAt) && endsAt <= now;
 }
 
 function errorMessage(error: unknown, fallback: string) {
@@ -478,13 +483,22 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
                   <span className={`text-xs font-mono ${accent}`}>{items.length} reserva{items.length !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="space-y-2 p-3">
-                  {items.map(reservation => (
+                  {items.map(reservation => {
+                    const overdueSignature = hasOverdueSignature(reservation, now);
+                    return (
                     <button key={reservation.id} type="button" id={`reservation-card-${reservation.id}`}
                       onClick={() => setSelectedReservationId(reservation.id)} aria-haspopup="dialog"
-                      aria-label={`${reservation.id === nextReservation?.id ? 'Próximo evento: ' : ''}Abrir reserva de ${area}, apartamento ${reservation.unit}, ${formatDate(reservation.reservationDate)}`}
-                      className={`w-full rounded-sm border p-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 ${reservation.id === nextReservation?.id
+                      aria-label={`${overdueSignature ? 'Prazo encerrado, assinatura pendente: ' : reservation.id === nextReservation?.id ? 'Próximo evento: ' : ''}Abrir reserva de ${area}, apartamento ${reservation.unit}, ${formatDate(reservation.reservationDate)}`}
+                      className={`w-full rounded-sm border p-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 ${overdueSignature
+                        ? 'border-red-300 border-l-4 bg-red-950/60 ring-2 ring-red-400/60 shadow-lg shadow-red-500/15 hover:border-red-200 hover:bg-red-950/80 focus-visible:outline-red-300'
+                        : reservation.id === nextReservation?.id
                         ? 'border-amber-300 border-l-4 bg-amber-900/50 ring-2 ring-amber-400/60 shadow-lg shadow-amber-500/15 hover:border-amber-200 hover:bg-amber-900/70 focus-visible:outline-amber-300'
                         : `border-slate-800 bg-slate-950/60 hover:bg-slate-900 ${index === 0 ? 'hover:border-emerald-500/60 focus-visible:outline-emerald-400' : 'hover:border-cyan-500/60 focus-visible:outline-cyan-400'}`}`}>
+                      {overdueSignature && (
+                        <span className="mb-3 flex items-center gap-1.5 rounded-sm bg-red-300 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-950">
+                          <AlertTriangle size={12} className="shrink-0" /> Prazo encerrado · Assinatura pendente
+                        </span>
+                      )}
                       {reservation.id === nextReservation?.id && (
                         <span className="mb-3 flex items-center gap-1.5 rounded-sm bg-amber-300 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-950">
                           <Clock size={12} /> Próximo evento
@@ -512,7 +526,8 @@ export default function ReservationsModule({ showToast, isInternetOnline }: Rese
                       </span>
                       {reservation.syncStatus !== 'synced' && <span className="mt-2 block text-[10px] text-amber-400">{reservation.syncStatus === 'failed' ? 'Falha na sincronização' : 'Sincronização pendente'}</span>}
                     </button>
-                  ))}
+                  );
+                  })}
                   {items.length === 0 && <p className="px-3 py-8 text-center text-sm text-slate-500">{isLoading ? 'Carregando reservas...' : searchTerm || areaFilter !== 'todos' || statusFilter !== 'todos' ? 'Nenhuma reserva corresponde aos filtros.' : 'Nenhuma reserva cadastrada para esta área.'}</p>}
                 </div>
               </section>
