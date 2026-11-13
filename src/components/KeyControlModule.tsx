@@ -17,8 +17,7 @@ import {
   Check,
   Search,
   Filter,
-  UserCheck,
-  Calendar
+  UserCheck
 } from 'lucide-react';
 import { KeyRecord } from '../types';
 import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
@@ -26,6 +25,18 @@ import RegisteredUnitAutocomplete from './RegisteredUnitAutocomplete';
 interface KeyControlModuleProps {
   showToast: (message: string, type: 'success' | 'warning' | 'error') => void;
   isInternetOnline: boolean;
+}
+
+function currentKeyDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const value = (type: string) => parts.find(part => part.type === type)!.value;
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
+function compareKeyRecords(a: KeyRecord, b: KeyRecord) {
+  return Number(b.status === 'retirada') - Number(a.status === 'retirada')
+    || b.date.localeCompare(a.date)
+    || b.pickupTime.localeCompare(a.pickupTime);
 }
 
 export default function KeyControlModule({ showToast, isInternetOnline }: KeyControlModuleProps) {
@@ -43,7 +54,6 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
   const [pickupTime, setPickupTime] = useState(() => {
     return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   });
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [gatekeeper, setGatekeeper] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,7 +89,6 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
     if (!unit.trim()) errors.unit = 'Apartamento/Unidade é obrigatório';
     if (!pickupTime.trim()) errors.pickupTime = 'Hora de entrega é obrigatório';
     if (!gatekeeper.trim()) errors.gatekeeper = 'Porteiro responsável é obrigatório';
-    if (!date) errors.date = 'Selecione a data';
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -95,7 +104,7 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date,
+          date: currentKeyDate(),
           local: local.trim(),
           residentName: residentName.trim(),
           unit: unit.trim(),
@@ -109,7 +118,7 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
         setKeys(prev => [newRecord, ...prev]);
         showToast(`Retirada de chave para ${local} cadastrada com sucesso!`, 'success');
         
-        // Reset form except gatekeeper and date for easier double entry
+        // Keep the gatekeeper for the next delivery.
         setLocal('');
         setResidentName('');
         setUnit('');
@@ -187,7 +196,7 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
       k.status === statusFilter;
 
     return matchSearch && matchStatus;
-  });
+  }).sort(compareKeyRecords);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="key-control-module">
@@ -211,27 +220,6 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
 
           <form onSubmit={handleCreateKeyRecord} className="space-y-4">
             
-            {/* DATA */}
-            <div className="space-y-1">
-              <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                Data
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
-                  <Calendar size={13} />
-                </span>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className={`w-full pl-9 pr-3 py-2 bg-slate-950 border text-slate-100 rounded-sm text-xs focus:outline-none focus:border-amber-500/50 transition font-mono ${
-                    formErrors.date ? 'border-red-500' : 'border-slate-800'
-                  }`}
-                />
-              </div>
-              {formErrors.date && <p className="text-[9px] text-red-400 font-mono uppercase">{formErrors.date}</p>}
-            </div>
-
             {/* LOCAL / AREA */}
             <div className="space-y-1">
               <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
@@ -434,12 +422,10 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
                     return (
                       <tr 
                         key={key.id} 
-                        className={`hover:bg-slate-950/20 transition ${
-                          !isReturned ? 'bg-amber-950/5' : ''
-                        }`}
+                        className={`transition ${isReturned ? 'hover:bg-slate-950/20' : 'bg-amber-900/35 hover:bg-amber-900/50'}`}
                       >
                         {/* LOCAL */}
-                        <td className="py-3 px-4 font-mono">
+                        <td className={`py-3 px-4 font-mono border-l-4 ${isReturned ? 'border-transparent' : 'border-amber-400'}`}>
                           <div className="flex items-center gap-1.5">
                             <Key size={12} className={isReturned ? 'text-slate-500' : 'text-amber-400'} />
                             <span className="font-bold text-slate-205">{key.local}</span>
@@ -471,8 +457,8 @@ export default function KeyControlModule({ showToast, isInternetOnline }: KeyCon
                           {isReturned ? (
                             <span className="text-emerald-400 font-bold">{key.returnTime}</span>
                           ) : (
-                            <span className="text-amber-500 text-[10px] uppercase font-bold tracking-wider px-1 bg-amber-500/10 border border-amber-500/20 rounded-xs">
-                              Retirada
+                            <span className="inline-flex items-center gap-1 text-amber-950 text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-amber-300 rounded-sm">
+                              <Clock size={12} /> Devolução pendente
                             </span>
                           )}
                         </td>
