@@ -49,7 +49,7 @@ function canCancelReservation(reservation: CommonAreaReservation) {
 
 function hasOverdueSignature(reservation: CommonAreaReservation, now: number) {
   const endsAt = new Date(`${reservation.reservationDate}T${reservation.endTime}`).getTime();
-  return reservation.status !== 'cancelada' && !reservation.signed && Number.isFinite(endsAt) && endsAt <= now;
+  return reservation.status === 'reservada' && !reservation.signed && Number.isFinite(endsAt) && endsAt <= now;
 }
 
 function errorMessage(error: unknown, fallback: string) {
