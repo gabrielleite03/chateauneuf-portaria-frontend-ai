@@ -1,0 +1,17 @@
+{
+  "version": "2026.11.12.2",
+  "frontend": {
+    "image": "chateauneuf-frontend:2026.11.12.2",
+    "commit": "e397b4172652dbe43e743019518da95572216cf4",
+    "image_id": "sha256:399c33ce95349e217268aa7c2418c8594598dc85a61d6775bd3bd7d63ce9f1aa",
+    "archive": "frontend-image.tar",
+    "archive_sha256": "b85ba13307dae0644e3696e23b2ae2723b16bd989191ecf8ead17782c9699d61",
+    "sourceState": "working-tree-including-existing-camera-audio"
+  },
+  "checks": {
+    "frontend_markers": [
+      "Prazo encerrado",
+      "Assinatura pendente"
+    ]
+  }
+}
