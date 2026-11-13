@@ -1,0 +1,18 @@
+{
+  "version": "2026.11.12.3",
+  "frontend": {
+    "image": "chateauneuf-frontend:2026.11.12.3",
+    "commit": "f50187fe921b35068293ff37a6fe460fae4407c3",
+    "image_id": "sha256:a7a1bc9df519aafc476ba4eede3a4f23c9628c28b2f12bfb1e2b23e7f2b7de07",
+    "archive": "frontend-image.tar",
+    "archive_sha256": "8efb285e8db97724ae2f8fe0bf2c22c3176d296f7795df479331e906ec4935bb",
+    "sourceState": "working-tree-including-existing-camera-audio"
+  },
+  "checks": {
+    "frontend_markers": [
+      "Devolu\u00e7\u00e3o pendente",
+      "America/Sao_Paulo",
+      "Prazo encerrado"
+    ]
+  }
+}
