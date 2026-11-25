@@ -21,7 +21,11 @@ def main():
   print('LAN address ready');return
  name='network-auth-service';network='chateauneufportaria_default'
  current=json.loads(run('docker','inspect',name))[0]
- if network not in current['NetworkSettings']['Networks']:
+ endpoint=current['NetworkSettings']['Networks'].get(network)
+ if not current['State']['Running'] and endpoint and (endpoint.get('IPAMConfig') or {}).get('IPv4Address'):
+  run('docker','network','disconnect','--force',network,name)
+  endpoint=None
+ if endpoint is None:
   run('docker','network','connect','--alias',name,network,name)
  if not current['State']['Running']:run('docker','start',name)
  print('Authentication container running after network readiness check',flush=True)
